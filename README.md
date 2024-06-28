@@ -1,2 +1,4 @@
+<img src="./SlicerEditor.png">
+
 # SlicerEditor
-a simple programming editor for Slicer based on monaco
+a simple programming editor for Slicer based on [monaco editor](https://microsoft.github.io/monaco-editor/)
