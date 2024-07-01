@@ -105,7 +105,7 @@ class SlicerEditorWidget(ScriptedLoadableModuleWidget):
             print("No code to execute.")
             return
         elif code:
-            exec(code, globals())
+            slicer.app.pythonManager().executeString(code)
         else:
             print("In Slicer you would have executed this code:")
             print(code)
