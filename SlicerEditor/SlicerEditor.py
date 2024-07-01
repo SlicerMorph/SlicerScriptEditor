@@ -21,7 +21,7 @@ class SlicerEditor(ScriptedLoadableModule):
 
     def __init__(self, parent):
         ScriptedLoadableModule.__init__(self, parent)
-        self.parent.title = "SlicerEditor"
+        self.parent.title = "SlicerEditord"
         self.parent.categories = ["SlicerMorph.Input and Output"]
         self.parent.dependencies = []
         self.parent.contributors = ["Murat Maga (UW), Oshane Thomas(SCRI)"]
