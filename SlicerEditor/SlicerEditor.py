@@ -57,15 +57,15 @@ class SlicerEditorWidget(ScriptedLoadableModuleWidget):
         self.runButton.setSizePolicy(qt.QSizePolicy.Fixed, qt.QSizePolicy.Fixed)
         self.runButton.clicked.connect(self.runButtonClicked)
 
-        # Create a run selected button
-        # self.runSelectedButton = qt.QPushButton("Run Selected")
-        # self.runSelectedButton.setSizePolicy(qt.QSizePolicy.Fixed, qt.QSizePolicy.Fixed)
-        # self.runSelectedButton.clicked.connect(self.runSelectedButtonClicked)
+        # Create a save button
+        self.saveButton = qt.QPushButton("Save")
+        self.saveButton.setSizePolicy(qt.QSizePolicy.Fixed, qt.QSizePolicy.Fixed)
+        self.saveButton.clicked.connect(self.saveButtonClicked)
 
         # Create a layout to place the buttons next to each other
         self.buttonLayout = qt.QHBoxLayout()
         self.buttonLayout.addWidget(self.runButton)
-        # self.buttonLayout.addWidget(self.runSelectedButton)
+        self.buttonLayout.addWidget(self.saveButton)
         self.buttonLayout.addStretch()  # Add stretch to push buttons to the left
 
         self.buttonWidget = qt.QWidget()
@@ -89,15 +89,38 @@ class SlicerEditorWidget(ScriptedLoadableModuleWidget):
         # Execute the JavaScript to get the code from the editor
         self.editorView.evalJS("window.editor.getModel().getValue()")
 
-    # def runSelectedButtonClicked(self):
-    #     # Execute the JavaScript to get the selected code from the editor
-    #     self.editorView.evalJS("window.editor.getModel().getValueInRange(window.editor.getSelection())")
+    def saveButtonClicked(self):
+        # Execute the JavaScript to get the code from the editor
+        self.editorView.evalJS("window.editor.getModel().getValue()")
+        self.savingCode = True
 
     def onEvalResult(self, request, result):
         if request == "window.editor.getModel().getValue()":
-            self.processEditorCode(result)
-        # elif request == "window.editor.getModel().getValueInRange(window.editor.getSelection())":
-        #     self.processEditorCode(result)
+            if hasattr(self, 'savingCode') and self.savingCode:
+                self.saveEditorCode(result)
+                self.savingCode = False
+            else:
+                self.processEditorCode(result)
+
+    def saveEditorCode(self, code):
+        if not code:
+            print("No code to save.")
+            return
+        else:
+            # Prompt the user for a filename
+            filePath = qt.QInputDialog.getText(slicer.util.mainWindow(), 'Save As', 'Enter filename:')
+            if filePath.split('.')[-1] == 'py':
+                # Create a new text node
+                textNode = slicer.mrmlScene.AddNewNodeByClass("vtkMRMLTextNode")
+                textNode.SetName(filePath)
+                textNode.SetText(code)
+                print(f"Code saved to MRML text node: {textNode.GetName()}")
+            else:
+                # Create a new text node
+                textNode = slicer.mrmlScene.AddNewNodeByClass("vtkMRMLTextNode")
+                textNode.SetName(filePath + '.py')
+                textNode.SetText(code)
+                print(f"Code saved to MRML text node: {textNode.GetName()}")
 
     @staticmethod
     def processEditorCode(code):
