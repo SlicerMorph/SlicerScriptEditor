@@ -14,6 +14,21 @@ def getResourceScriptPath(scriptName):
     return resourceScriptPath
 
 
+class SlicerEditor(ScriptedLoadableModule):
+    """Uses ScriptedLoadableModule base class, available at:
+    https://github.com/Slicer/Slicer/blob/main/Base/Python/slicer/ScriptedLoadableModule.py
+    """
+
+    def __init__(self, parent):
+        ScriptedLoadableModule.__init__(self, parent)
+        self.parent.title = "SlicerEditor"
+        self.parent.categories = ["SlicerMorph.Input and Output"]
+        self.parent.dependencies = []
+        self.parent.contributors = ["Murat Maga (UW), Oshane Thomas(SCRI)"]
+        self.parent.helpText = """ """
+        self.parent.acknowledgementText = """ """
+
+
 class SlicerEditorWidget(ScriptedLoadableModuleWidget):
     """Uses ScriptedLoadableModuleWidget base class, available at:
     https://github.com/Slicer/Slicer/blob/main/Base/Python/slicer/ScriptedLoadableModule.py
