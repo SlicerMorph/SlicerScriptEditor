@@ -14,21 +14,6 @@ def getResourceScriptPath(scriptName):
     return resourceScriptPath
 
 
-class SlicerEditor(ScriptedLoadableModule):
-    """Uses ScriptedLoadableModule base class, available at:
-    https://github.com/Slicer/Slicer/blob/main/Base/Python/slicer/ScriptedLoadableModule.py
-    """
-
-    def __init__(self, parent):
-        ScriptedLoadableModule.__init__(self, parent)
-        self.parent.title = "SlicerEditor"
-        self.parent.categories = ["SlicerMorph.Input and Output"]
-        self.parent.dependencies = []
-        self.parent.contributors = ["Murat Maga (UW), Oshane Thomas(SCRI)"]
-        self.parent.helpText = """ """
-        self.parent.acknowledgementText = """ """
-
-
 class SlicerEditorWidget(ScriptedLoadableModuleWidget):
     """Uses ScriptedLoadableModuleWidget base class, available at:
     https://github.com/Slicer/Slicer/blob/main/Base/Python/slicer/ScriptedLoadableModule.py
@@ -51,6 +36,18 @@ class SlicerEditorWidget(ScriptedLoadableModuleWidget):
         self.editorView = slicer.qSlicerWebWidget()
         self.editorView.setSizePolicy(qt.QSizePolicy.Expanding, qt.QSizePolicy.Expanding)
         self.editorView.setMinimumSize(qt.QSize(450, 500))
+
+        # Create a label and a dropdown (combobox) with options
+        self.comboBoxLabel = qt.QLabel("Python Node:")
+        self.fileOptionsDropdown = qt.QComboBox()
+        self.fileOptionsDropdown.addItems(["select option", "new .py file", "save .py file", "save as .py file"])
+        self.fileOptionsDropdown.currentIndexChanged.connect(self.onFileOptionChanged)
+
+        # Create a horizontal layout for the label and combobox
+        self.comboBoxLayout = qt.QHBoxLayout()
+        self.comboBoxLayout.addWidget(self.comboBoxLabel)
+        self.comboBoxLayout.addWidget(self.fileOptionsDropdown)
+        self.comboBoxLayout.addStretch()  # Add stretch to push combobox to the left
 
         # Create a run button
         self.runButton = qt.QPushButton("Run")
@@ -77,7 +74,9 @@ class SlicerEditorWidget(ScriptedLoadableModuleWidget):
         self.buttonWidget = qt.QWidget()
         self.buttonWidget.setLayout(self.buttonLayout)
 
+        # Main layout
         self.mainLayout = qt.QVBoxLayout()
+        self.mainLayout.addLayout(self.comboBoxLayout)  # Add the comboBox layout to the main layout
         self.mainLayout.addWidget(self.buttonWidget)
         self.mainLayout.addWidget(self.editorView)
 
@@ -91,6 +90,30 @@ class SlicerEditorWidget(ScriptedLoadableModuleWidget):
         # Connect the evalResult signal to the slot
         self.editorView.connect("evalResult(QString,QString)", self.onEvalResult)
 
+    def onFileOptionChanged(self, index):
+        if index == 1:
+            self.newFile()
+        elif index == 2:
+            self.saveFile()
+        elif index == 3:
+            self.saveFileAs()
+        # Reset the combobox to the default option
+        self.fileOptionsDropdown.setCurrentIndex(0)
+
+    def newFile(self):
+        # Clear the editor
+        self.editorView.evalJS("window.editor.getModel().setValue('');")
+
+    def saveFile(self):
+        # Execute the JavaScript to get the code from the editor
+        self.editorView.evalJS("window.editor.getModel().getValue()")
+        self.savingToFile = True
+
+    def saveFileAs(self):
+        # Execute the JavaScript to get the code from the editor
+        self.editorView.evalJS("window.editor.getModel().getValue()")
+        self.savingToFileAs = True
+
     def runButtonClicked(self):
         # Execute the JavaScript to get the code from the editor
         self.editorView.evalJS("window.editor.getModel().getValue()")
@@ -102,7 +125,6 @@ class SlicerEditorWidget(ScriptedLoadableModuleWidget):
 
     def importButtonClicked(self):
         # Get the text node from the user
-        # Get all text nodes in the scene
         textNodes = slicer.util.getNodesByClass("vtkMRMLTextNode")
         if not textNodes:
             qt.QMessageBox.information(slicer.util.mainWindow(), 'SlicerEditor', 'No text nodes found in the scene.')
@@ -123,30 +145,65 @@ class SlicerEditorWidget(ScriptedLoadableModuleWidget):
     def onEvalResult(self, request, result):
         if request == "window.editor.getModel().getValue()":
             if hasattr(self, 'savingCode') and self.savingCode:
-                self.saveEditorCode(result)
+                self.saveEditorCodeToScene(result)
                 self.savingCode = False
+            elif hasattr(self, 'savingToFile') and self.savingToFile:
+                self.saveEditorCodeToFile(result)
+                self.savingToFile = False
+            elif hasattr(self, 'savingToFileAs') and self.savingToFileAs:
+                self.saveEditorCodeToFileAs(result)
+                self.savingToFileAs = False
             else:
                 self.processEditorCode(result)
 
-    def saveEditorCode(self, code):
+    def saveEditorCodeToScene(self, code):
         if not code:
             print("No code to save.")
             return
         else:
             # Prompt the user for a filename
-            filePath = qt.QInputDialog.getText(slicer.util.mainWindow(), 'Save As', 'Enter filename:')
-            if filePath.split('.')[-1] == 'py':
+            filePath, ok = qt.QInputDialog.getText(slicer.util.mainWindow(), 'Save As', 'Enter filename:')
+            if ok and filePath:
+                if not filePath.endswith('.py'):
+                    filePath += '.py'
                 # Create a new text node
                 textNode = slicer.mrmlScene.AddNewNodeByClass("vtkMRMLTextNode")
                 textNode.SetName(filePath)
                 textNode.SetText(code)
                 print(f"Code saved to MRML text node: {textNode.GetName()}")
-            else:
-                # Create a new text node
-                textNode = slicer.mrmlScene.AddNewNodeByClass("vtkMRMLTextNode")
-                textNode.SetName(filePath + '.py')
-                textNode.SetText(code)
-                print(f"Code saved to MRML text node: {textNode.GetName()}")
+
+    def saveEditorCodeToFile(self, code):
+        if not code:
+            print("No code to save.")
+            return
+        else:
+            # Prompt the user for a filename if it hasn't been provided already
+            filePath, _ = qt.QInputDialog.getText(slicer.util.mainWindow(), 'Save', 'Enter filename:')
+            if not filePath:
+                return
+
+            if not filePath.endswith('.py'):
+                filePath += '.py'
+
+            # Save the code to the specified file
+            with open(filePath, 'w') as file:
+                file.write(code)
+            print(f"Code saved to file: {filePath}")
+
+    def saveEditorCodeToFileAs(self, code):
+        if not code:
+            print("No code to save.")
+            return
+        else:
+            # Prompt the user for a filename
+            filePath, ok = qt.QInputDialog.getText(slicer.util.mainWindow(), 'Save As', 'Enter filename:')
+            if ok and filePath:
+                if not filePath.endswith('.py'):
+                    filePath += '.py'
+                # Save the code to the specified file
+                with open(filePath, 'w') as file:
+                    file.write(code)
+                print(f"Code saved to file: {filePath}")
 
     @staticmethod
     def processEditorCode(code):
