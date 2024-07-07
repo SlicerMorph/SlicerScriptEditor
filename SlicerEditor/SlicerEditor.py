@@ -55,7 +55,7 @@ class SlicerEditorWidget(ScriptedLoadableModuleWidget):
         # Create a label and a dropdown (combobox) with options
         self.comboBoxLabel = qt.QLabel("Python Node:")
         self.fileOptionsDropdown = qt.QComboBox()
-        self.fileOptionsDropdown.addItems(["select option", "new .py file", "save .py file", "save as .py file"])
+        self.fileOptionsDropdown.addItems(["select option", "new .py file", "open .py file", "save as .py file"])
         self.fileOptionsDropdown.currentIndexChanged.connect(self.onFileOptionChanged)
 
         # Create a horizontal layout for the label and combobox
@@ -109,7 +109,7 @@ class SlicerEditorWidget(ScriptedLoadableModuleWidget):
         if index == 1:
             self.newFile()
         elif index == 2:
-            self.saveFile()
+            self.openFile()
         elif index == 3:
             self.saveFileAs()
         # Reset the combobox to the default option
@@ -119,10 +119,16 @@ class SlicerEditorWidget(ScriptedLoadableModuleWidget):
         # Clear the editor
         self.editorView.evalJS("window.editor.getModel().setValue('');")
 
-    def saveFile(self):
-        # Execute the JavaScript to get the code from the editor
-        self.editorView.evalJS("window.editor.getModel().getValue()")
-        self.savingToFile = True
+    def openFile(self):
+        # Prompt the user for a filename and location
+        filePath, _ = qt.QFileDialog.getOpenFileName(slicer.util.mainWindow(), 'Open', '', 'Python Files (*.py)')
+        if not filePath:
+            return
+
+        # Read the file and set its content to the editor
+        with open(filePath, 'r') as file:
+            code = file.read()
+        self.editorView.evalJS(f"window.editor.getModel().setValue(`{code}`);")
 
     def saveFileAs(self):
         # Execute the JavaScript to get the code from the editor
@@ -162,9 +168,6 @@ class SlicerEditorWidget(ScriptedLoadableModuleWidget):
             if hasattr(self, 'savingCode') and self.savingCode:
                 self.saveEditorCodeToScene(result)
                 self.savingCode = False
-            elif hasattr(self, 'savingToFile') and self.savingToFile:
-                self.saveEditorCodeToFile(result)
-                self.savingToFile = False
             elif hasattr(self, 'savingToFileAs') and self.savingToFileAs:
                 self.saveEditorCodeToFileAs(result)
                 self.savingToFileAs = False
@@ -187,32 +190,15 @@ class SlicerEditorWidget(ScriptedLoadableModuleWidget):
                 textNode.SetText(code)
                 print(f"Code saved to MRML text node: {textNode.GetName()}")
 
-    def saveEditorCodeToFile(self, code):
-        if not code:
-            print("No code to save.")
-            return
-        else:
-            # Prompt the user for a filename if it hasn't been provided already
-            filePath, _ = qt.QInputDialog.getText(slicer.util.mainWindow(), 'Save', 'Enter filename:')
-            if not filePath:
-                return
-
-            if not filePath.endswith('.py'):
-                filePath += '.py'
-
-            # Save the code to the specified file
-            with open(filePath, 'w') as file:
-                file.write(code)
-            print(f"Code saved to file: {filePath}")
-
     def saveEditorCodeToFileAs(self, code):
         if not code:
             print("No code to save.")
             return
         else:
-            # Prompt the user for a filename
-            filePath, ok = qt.QInputDialog.getText(slicer.util.mainWindow(), 'Save As', 'Enter filename:')
-            if ok and filePath:
+            # Prompt the user for a filename and location
+            filePath = qt.QFileDialog.getSaveFileName(slicer.util.mainWindow(), 'Save As', '',
+                                                          'Python Files (*.py)')
+            if filePath:
                 if not filePath.endswith('.py'):
                     filePath += '.py'
                 # Save the code to the specified file
