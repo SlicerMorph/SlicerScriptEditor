@@ -121,7 +121,7 @@ class SlicerEditorWidget(ScriptedLoadableModuleWidget):
 
     def openFile(self):
         # Prompt the user for a filename and location
-        filePath, _ = qt.QFileDialog.getOpenFileName(slicer.util.mainWindow(), 'Open', '', 'Python Files (*.py)')
+        filePath = qt.QFileDialog.getOpenFileName(slicer.util.mainWindow(), 'Open', '', 'Python Files (*.py)')
         if not filePath:
             return
 
@@ -180,8 +180,8 @@ class SlicerEditorWidget(ScriptedLoadableModuleWidget):
             return
         else:
             # Prompt the user for a filename
-            filePath, ok = qt.QInputDialog.getText(slicer.util.mainWindow(), 'Save As', 'Enter filename:')
-            if ok and filePath:
+            filePath = qt.QInputDialog.getText(slicer.util.mainWindow(), 'Save As', 'Enter filename:')
+            if filePath:
                 if not filePath.endswith('.py'):
                     filePath += '.py'
                 # Create a new text node
