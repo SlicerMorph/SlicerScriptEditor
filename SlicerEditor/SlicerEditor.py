@@ -22,9 +22,10 @@ class SlicerEditor(ScriptedLoadableModule):
     def __init__(self, parent):
         ScriptedLoadableModule.__init__(self, parent)
         self.parent.title = "SlicerEditor"
-        self.parent.categories = ["SlicerMorph.Input and Output"]
+        self.parent.categories = ["SlicerEditor"]
         self.parent.dependencies = []
-        self.parent.contributors = ["Murat Maga (UW), Oshane Thomas(SCRI)"]
+        self.parent.contributors = ["Murat Maga (UW), Oshane Thomas(SCRI), "
+                                    "Sara Rolfe (SCRI), Steve Pieper (Isomics, Inc."]
         self.parent.helpText = """ """
         self.parent.acknowledgementText = """ """
 
@@ -70,20 +71,20 @@ class SlicerEditorWidget(ScriptedLoadableModuleWidget):
         self.runButton.clicked.connect(self.runButtonClicked)
 
         # Create a save button
-        self.saveButton = qt.QPushButton("Save to Scene")
-        self.saveButton.setSizePolicy(qt.QSizePolicy.Fixed, qt.QSizePolicy.Fixed)
-        self.saveButton.clicked.connect(self.saveButtonClicked)
-
-        # Create an import button
-        self.importButton = qt.QPushButton("Open from Scene")
-        self.importButton.setSizePolicy(qt.QSizePolicy.Fixed, qt.QSizePolicy.Fixed)
-        self.importButton.clicked.connect(self.importButtonClicked)
+        # self.saveButton = qt.QPushButton("Save to Scene")
+        # self.saveButton.setSizePolicy(qt.QSizePolicy.Fixed, qt.QSizePolicy.Fixed)
+        # self.saveButton.clicked.connect(self.saveButtonClicked)
+        #
+        # # Create an import button
+        # self.importButton = qt.QPushButton("Open from Scene")
+        # self.importButton.setSizePolicy(qt.QSizePolicy.Fixed, qt.QSizePolicy.Fixed)
+        # self.importButton.clicked.connect(self.importButtonClicked)
 
         # Create a layout to place the buttons next to each other
         self.buttonLayout = qt.QHBoxLayout()
         self.buttonLayout.addWidget(self.runButton)
-        self.buttonLayout.addWidget(self.saveButton)
-        self.buttonLayout.addWidget(self.importButton)
+        # self.buttonLayout.addWidget(self.saveButton)
+        # self.buttonLayout.addWidget(self.importButton)
         self.buttonLayout.addStretch()  # Add stretch to push buttons to the left
 
         self.buttonWidget = qt.QWidget()
