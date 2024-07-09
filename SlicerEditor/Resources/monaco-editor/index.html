@@ -56,10 +56,7 @@
             if (!("EvalPythonMode" in slicerPython)) {
                 alert("Use a 3D Slicer version newer than March 5, 2024");
             }
-            var pythonCode = `
-import SampleData
-SampleData.SampleDataLogic().downloadMRHead()
-`
+            var pythonCode = ``
             const evalSlicer = async (s) => {
                 let jsonResult = await slicerPython.evalPython(s, slicerPython.EvalPythonMode.EvalInput);
                 return JSON.parse(jsonResult);
