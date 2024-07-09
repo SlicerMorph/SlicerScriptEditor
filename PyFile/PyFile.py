@@ -1,7 +1,7 @@
-import logging
 import os
 import slicer
 from slicer.ScriptedLoadableModule import *
+import logging
 
 
 class PyFile(ScriptedLoadableModule):
@@ -17,6 +17,7 @@ class PyFile(ScriptedLoadableModule):
 
         # Register the custom file reader
         self.fileReader = PyFileFileReader(parent)
+        self.fileWriter = PyFileFileWriter(parent)
 
 
 class PyFileWidget(ScriptedLoadableModuleWidget):
@@ -54,22 +55,15 @@ class PyFileFileReader:
         return filePath.lower().endswith('.py')
 
     def load(self, properties):
-        """
-        Uses properties:
-            fileName - path to the .py file
-        """
         try:
-            py_path = properties['fileName']  # py file path
+            py_path = properties['fileName']
 
-            # Read the content of the .py file
             with open(py_path, 'r') as file:
                 content = file.read()
 
-            # Create a new text node and set its content
             text_node = slicer.mrmlScene.AddNewNodeByClass('vtkMRMLTextNode')
             text_node.SetName(os.path.basename(py_path))
             text_node.SetText(content)
-
             text_node.SetAttribute("mimetype", "text/x-python")
 
             self.parent.loadedNodes = [text_node.GetID()]
@@ -77,6 +71,45 @@ class PyFileFileReader:
 
         except Exception as e:
             logging.error('Failed to load file: ' + str(e))
+            import traceback
+            traceback.print_exc()
+            return False
+
+
+class PyFileFileWriter:
+    def __init__(self, parent):
+        self.parent = parent
+
+    def description(self):
+        return 'PYTHON Script'
+
+    def fileType(self):
+        return 'PYTHON'
+
+    def extensions(self):
+        return ['PYTHON (*.py)']
+
+    def canWriteObject(self, object):
+        return object.IsA('vtkMRMLTextNode') and object.GetAttribute('mimetype') == 'text/x-python'
+
+    def write(self, properties):
+        try:
+            py_path = properties['fileName']
+            node_id = properties['nodeID']
+            text_node = slicer.mrmlScene.GetNodeByID(node_id)
+
+            if text_node is None:
+                logging.error('Failed to get node by ID: ' + node_id)
+                return False
+
+            content = text_node.GetText()
+            with open(py_path, 'w') as file:
+                file.write(content)
+
+            return True
+
+        except Exception as e:
+            logging.error('Failed to write file: ' + str(e))
             import traceback
             traceback.print_exc()
             return False
