@@ -1,6 +1,6 @@
 import logging
 import os
-import vtk, qt, ctk, slicer
+import slicer
 from slicer.ScriptedLoadableModule import *
 
 
@@ -8,7 +8,7 @@ class PyFile(ScriptedLoadableModule):
     def __init__(self, parent):
         ScriptedLoadableModule.__init__(self, parent)
         self.parent.title = 'PyFile'
-        self.parent.categories = ['Testing.TestCases']
+        self.parent.categories = ['PyFile']
         self.parent.dependencies = []
         self.parent.contributors = ["Oshane Thomas (SCRI), Steve Pieper (Isomics), A. Murat Maga (UW)"]
         self.parent.helpText = '''This module creates a text node from the .py file being imported.'''
@@ -17,6 +17,7 @@ class PyFile(ScriptedLoadableModule):
 
         # Register the custom file reader
         self.fileReader = PyFileFileReader(parent)
+
 
 class PyFileWidget(ScriptedLoadableModuleWidget):
     """Uses ScriptedLoadableModuleWidget base class, available at:
@@ -41,7 +42,7 @@ class PyFileFileReader:
         self.parent = parent
 
     def description(self):
-        return 'PYTHON text node'
+        return 'PYTHON Script'
 
     def fileType(self):
         return 'PYTHON'
@@ -68,6 +69,8 @@ class PyFileFileReader:
             text_node = slicer.mrmlScene.AddNewNodeByClass('vtkMRMLTextNode')
             text_node.SetName(os.path.basename(py_path))
             text_node.SetText(content)
+
+            text_node.SetAttribute("mimetype", "text/x-python")
 
             self.parent.loadedNodes = [text_node.GetID()]
             return True

@@ -5,7 +5,7 @@ import slicer
 from slicer.ScriptedLoadableModule import *
 
 
-def getResourceScriptPath(scriptName):
+def getIndexPath(scriptName):
     # Get the path of the module
     modulePath = os.path.dirname(slicer.modules.slicereditor.path)
 
@@ -51,7 +51,7 @@ class SlicerEditorWidget(ScriptedLoadableModuleWidget):
         # Create and set up the qSlicerWebWidget
         self.editorView = slicer.qSlicerWebWidget()
         self.editorView.setSizePolicy(qt.QSizePolicy.Expanding, qt.QSizePolicy.Expanding)
-        self.editorView.setMinimumSize(qt.QSize(450, 500))
+        self.editorView.setMinimumSize(qt.QSize(200, 200))
 
         # Create a label and a dropdown (combobox) with options
         self.comboBoxLabel = qt.QLabel("Script:")
@@ -70,27 +70,27 @@ class SlicerEditorWidget(ScriptedLoadableModuleWidget):
         self.runButton.setSizePolicy(qt.QSizePolicy.Fixed, qt.QSizePolicy.Fixed)
         self.runButton.clicked.connect(self.runButtonClicked)
 
-        # Create a save button
-        # self.saveButton = qt.QPushButton("Save to Scene")
-        # self.saveButton.setSizePolicy(qt.QSizePolicy.Fixed, qt.QSizePolicy.Fixed)
-        # self.saveButton.clicked.connect(self.saveButtonClicked)
-        #
-        # # Create an import button
-        # self.importButton = qt.QPushButton("Open from Scene")
-        # self.importButton.setSizePolicy(qt.QSizePolicy.Fixed, qt.QSizePolicy.Fixed)
-        # self.importButton.clicked.connect(self.importButtonClicked)
+        #Create a save button
+        self.savetoSceneButton = qt.QPushButton("Save to Scene")
+        self.savetoSceneButton.setSizePolicy(qt.QSizePolicy.Fixed, qt.QSizePolicy.Fixed)
+        self.savetoSceneButton.clicked.connect(self.saveToSceneClicked)
+
+        # Create an import button
+        self.importButton = qt.QPushButton("Open from Scene")
+        self.importButton.setSizePolicy(qt.QSizePolicy.Fixed, qt.QSizePolicy.Fixed)
+        self.importButton.clicked.connect(self.getCodeFromScene)
 
         # Create a save button
         self.saveButton = qt.QPushButton("Save")
         self.saveButton.setSizePolicy(qt.QSizePolicy.Fixed, qt.QSizePolicy.Fixed)
-        # self.buttonLayout.addWidget(self.saveButton)
-        # self.buttonLayout.addWidget(self.importButton)
         self.saveButton.clicked.connect(self.saveButtonClicked)
 
         # Create a layout to place the buttons next to each other
         self.buttonLayout = qt.QHBoxLayout()
         self.buttonLayout.addWidget(self.runButton)
         self.buttonLayout.addWidget(self.saveButton)
+        self.buttonLayout.addWidget(self.savetoSceneButton)
+        self.buttonLayout.addWidget(self.importButton)
         self.buttonLayout.addStretch()  # Add stretch to push buttons to the left
 
         self.buttonWidget = qt.QWidget()
@@ -106,7 +106,7 @@ class SlicerEditorWidget(ScriptedLoadableModuleWidget):
         self.layout.addLayout(self.mainLayout)
 
         # Load the Monaco Editor HTML
-        editorHtmlPath = getResourceScriptPath("index.html")
+        editorHtmlPath = getIndexPath("index.html")
         self.editorView.url = qt.QUrl.fromLocalFile(editorHtmlPath)
 
         # Connect the evalResult signal to the slot
@@ -151,6 +151,11 @@ class SlicerEditorWidget(ScriptedLoadableModuleWidget):
         self.editorView.evalJS("window.editor.getModel().getValue()")
         self.savingToFileAs = True
 
+    def saveToSceneClicked(self):
+        # Execute the JavaScript to get the code from the editor
+        self.editorView.evalJS("window.editor.getModel().getValue()")
+        self.savingToScene = True
+
     def onEvalResult(self, request, result):
         if request == "window.editor.getModel().getValue()":
             if hasattr(self, 'savingCode') and self.savingCode:
@@ -159,10 +164,50 @@ class SlicerEditorWidget(ScriptedLoadableModuleWidget):
             elif hasattr(self, 'savingToFileAs') and self.savingToFileAs:
                 self.saveEditorCodeToFileAs(result)
                 self.savingToFileAs = False
+            elif hasattr(self, 'savingToScene') and self.savingToScene:
+                self.saveEditorCodeToScene(result)
+                self.savingToScene = False
             else:
                 self.processEditorCode(result)
 
-    def saveEditorCodeToFileAs(self, code):
+    def getCodeFromScene(self):
+        # Get the text node from the user
+        textNodes = slicer.util.getNodesByClass("vtkMRMLTextNode")
+        if not textNodes:
+            qt.QMessageBox.information(slicer.util.mainWindow(), 'SlicerEditor', 'No text nodes found in the scene.')
+            return
+
+        # Let the user select a node
+        items = [''] + [node.GetName() for node in textNodes]
+        item = qt.QInputDialog.getItem(slicer.util.mainWindow(), 'Select Text Node', 'Select a text node to open:',
+                                       items, 0, False)
+
+        if item == '':
+            pass
+        else:
+            selectedNode = next(node for node in textNodes if node.GetName() == item)
+            code = selectedNode.GetText()
+            self.editorView.evalJS(f"window.editor.getModel().setValue(`{code}`);")
+
+    @staticmethod
+    def saveEditorCodeToScene(code):
+        if not code:
+            print("No code to save.")
+            return
+        else:
+            # Prompt the user for a filename
+            filePath = qt.QInputDialog.getText(slicer.util.mainWindow(), 'Save As', 'Enter filename:')
+            if filePath:
+                if not filePath.endswith('.py'):
+                    filePath += '.py'
+                # Create a new text node
+                textNode = slicer.mrmlScene.AddNewNodeByClass("vtkMRMLTextNode")
+                textNode.SetName(filePath)
+                textNode.SetText(code)
+                print(f"Code saved to MRML text node: {textNode.GetName()}")
+
+    @staticmethod
+    def saveEditorCodeToFileAs(code):
         if not code:
             print("No code to save.")
             return
