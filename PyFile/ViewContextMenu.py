@@ -1,10 +1,9 @@
 import os
+import qt
 import slicer
 from slicer.ScriptedLoadableModule import *
 import logging
-
 from SubjectHierarchyPlugins import AbstractScriptedSubjectHierarchyPlugin
-
 
 class ViewContextMenu(ScriptedLoadableModule):
     def __init__(self, parent):
@@ -18,53 +17,63 @@ class ViewContextMenu(ScriptedLoadableModule):
 
     def onStartupCompleted(self):
         """Register subject hierarchy plugin once app is initialized"""
+        print("Startup completed, registering plugin...")
         import SubjectHierarchyPlugins
-        from ViewContextMenu import PyFileSubjectHierarchyPlugin
+        from ViewContextMenu import ViewContextMenuSubjectHierarchyPlugin as ViewContextMenuSubjectHierarchyPlugin
         scriptedPlugin = slicer.qSlicerSubjectHierarchyScriptedPlugin(None)
-        scriptedPlugin.setPythonSource(PyFileSubjectHierarchyPlugin.filePath)
+        scriptedPlugin.setPythonSource(ViewContextMenuSubjectHierarchyPlugin.filePath)
         pluginHandler = slicer.qSlicerSubjectHierarchyPluginHandler.instance()
         pluginHandler.registerPlugin(scriptedPlugin)
-        print("PyFileSubjectHierarchyPlugin loaded")
+        print("ViewContextMenuSubjectHierarchyPlugin loaded and registered")
 
-
-class PyFileSubjectHierarchyPlugin(AbstractScriptedSubjectHierarchyPlugin):
+class ViewContextMenuSubjectHierarchyPlugin(AbstractScriptedSubjectHierarchyPlugin):
     # Necessary static member to be able to set python source to scripted subject hierarchy plugin
     filePath = __file__
 
     def __init__(self, scriptedPlugin):
-        super(PyFileSubjectHierarchyPlugin, self).__init__(scriptedPlugin)
-        self.exportAction = qt.QAction("Export as .py", scriptedPlugin)
-        self.exportAction.objectName = "ExportAsPyAction"
+        super().__init__(scriptedPlugin)
+        self.savePyAction = qt.QAction("Save as .py", scriptedPlugin)
+        self.savePyAction.objectName = "SaveAsPyAction"
         # Set the action's position in the menu
-        slicer.qSlicerSubjectHierarchyAbstractPlugin.setActionPosition(self.exportAction,
-                                                                       slicer.qSlicerSubjectHierarchyAbstractPlugin.SectionNode + 5)
-        self.exportAction.connect("triggered()", self.onExportAction)
+        slicer.qSlicerSubjectHierarchyAbstractPlugin.setActionPosition(
+            self.savePyAction,
+            slicer.qSlicerSubjectHierarchyAbstractPlugin.SectionNode + 5)
+        self.savePyAction.connect("triggered()", self.onSavePyAction)
+        print("ViewContextMenuSubjectHierarchyPlugin initialized")
 
     def viewContextMenuActions(self):
-        return [self.exportAction]
+        print("Returning context menu actions")
+        return [self.savePyAction]
 
     def showViewContextMenuActionsForItem(self, itemID, eventData=None):
+        print(f"showViewContextMenuActionsForItem called for itemID: {itemID}")
         # Get the node associated with the itemID
         shNode = slicer.mrmlScene.GetSubjectHierarchyNode()
         nodeID = shNode.GetItemDataNodeID(itemID)
         node = slicer.mrmlScene.GetNodeByID(nodeID)
-        if node and node.IsA('vtkMRMLTextNode') and node.GetAttribute('mimetype') == 'text/x-python':
-            self.exportAction.visible = True
+        if node:
+            print(f"Node found: {node.GetName()}")
+            if node.IsA('vtkMRMLTextNode') and node.GetAttribute('mimetype') == 'text/x-python':
+                print("Node is a vtkMRMLTextNode with text/x-python mimetype, enabling save as .py action")
+                self.savePyAction.setEnabled(True)
+            else:
+                print("Node is not a vtkMRMLTextNode with text/x-python mimetype, disabling save as .py action")
+                self.savePyAction.setEnabled(False)
         else:
-            self.exportAction.visible = False
+            print("No node found for the given itemID")
 
-    def onExportAction(self):
+    def onSavePyAction(self):
+        print("Save as .py action triggered")
         itemID = self.subjectHierarchyNode().currentItemID()
         node = slicer.mrmlScene.GetNodeByID(self.subjectHierarchyNode().GetItemDataNodeID(itemID))
         if node:
-            self.exportNodeAsPy(node)
+            self.saveNodeAsPy(node)
 
-    def exportNodeAsPy(self, node):
+    def saveNodeAsPy(self, node):
         writer = PyFileFileWriter(None)
         properties = {'fileName': slicer.app.ioManager().openFileName(None, "Save As", "Python Files (*.py)"),
                       'nodeID': node.GetID()}
         writer.write(properties)
-
 
 class PyFileFileWriter:
     def __init__(self, parent):
