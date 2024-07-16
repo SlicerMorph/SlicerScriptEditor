@@ -51,7 +51,7 @@ class SlicerEditorWidget(ScriptedLoadableModuleWidget):
         # Create and set up the qSlicerWebWidget
         self.editorView = slicer.qSlicerWebWidget()
         self.editorView.setSizePolicy(qt.QSizePolicy.Expanding, qt.QSizePolicy.Expanding)
-        self.editorView.setMinimumSize(qt.QSize(200, 200))
+        self.editorView.setMinimumSize(qt.QSize(200, 350))
 
         # Create a label and a dropdown (combobox) with options
         self.comboBoxLabel = qt.QLabel("Script:")
@@ -172,7 +172,7 @@ class SlicerEditorWidget(ScriptedLoadableModuleWidget):
 
     def getCodeFromScene(self):
         # Get the text node from the user
-        textNodes = slicer.util.getNodesByClass("vtkMRMLTextNode")
+        textNodes = slicer.util.getNodesByClass("vtkMRMLPythonTextNode")
         if not textNodes:
             qt.QMessageBox.information(slicer.util.mainWindow(), 'SlicerEditor', 'No text nodes found in the scene.')
             return

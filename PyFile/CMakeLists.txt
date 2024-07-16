@@ -4,7 +4,7 @@ set(MODULE_NAME PyFile)
 #-----------------------------------------------------------------------------
 set(MODULE_PYTHON_SCRIPTS
   ${MODULE_NAME}.py
-  ViewContextMenu.py
+  SavePyFile.py
   )
 
 set(MODULE_PYTHON_RESOURCES

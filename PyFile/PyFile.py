@@ -64,9 +64,31 @@ class PyFileFileReader:
             text_node = slicer.mrmlScene.AddNewNodeByClass('vtkMRMLTextNode')
             text_node.SetName(os.path.basename(py_path))
             text_node.SetText(content)
-            text_node.SetAttribute("mimetype", "text/x-python")
+            text_node.SetAttribute("mimetype", "text/x-python")  # Setting the mimetype attribute
+            text_node.SetAttribute("customTag", "pythonFile")  # Custom tag for additional signaling
+            print(f"Setting attributes for node {text_node.GetName()}: mimetype=text/x-python, customTag=pythonFile")  # Debug print
+
+            # Verify attribute setting
+            mimetype = text_node.GetAttribute("mimetype")
+            customTag = text_node.GetAttribute("customTag")
+            print(f"Node {text_node.GetName()} mimetype after setting: {mimetype}, customTag after setting: {customTag}")  # Debug print
+
+            # Create and configure a storage node for the text node
+            storage_node = slicer.mrmlScene.AddNewNodeByClass('vtkMRMLTextStorageNode')
+            storage_node.SetFileName(py_path)
+
+            # Associate the storage node with the text node
+            text_node.SetAndObserveStorageNodeID(storage_node.GetID())
 
             self.parent.loadedNodes = [text_node.GetID()]
+
+            # Additional verification
+            created_node = slicer.mrmlScene.GetNodeByID(text_node.GetID())
+            if created_node:
+                print(f"Verifying node {created_node.GetName()} after adding to scene")
+                for attr in created_node.GetAttributeNames():
+                    print(f"Node attribute {attr}: {created_node.GetAttribute(attr)}")
+
             return True
 
         except Exception as e:
