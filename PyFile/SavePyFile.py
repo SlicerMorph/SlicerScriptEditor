@@ -1,4 +1,4 @@
-import os
+import os, time
 import qt, vtk
 import slicer
 from slicer.ScriptedLoadableModule import *
@@ -57,6 +57,7 @@ class SavePyFileSubjectHierarchyPlugin(AbstractScriptedSubjectHierarchyPlugin):
 
     def canOwnSubjectHierarchyItem(self, itemID):
         pluginHandlerSingleton = slicer.qSlicerSubjectHierarchyPluginHandler.instance()
+        pluginHandlerSingleton.subjectHierarchyNode().Modified()  # Refresh the subject hierarchy node
         shNode = pluginHandlerSingleton.subjectHierarchyNode()
         node = shNode.GetItemDataNode(itemID)
 
@@ -133,6 +134,39 @@ class SavePyFileSubjectHierarchyPlugin(AbstractScriptedSubjectHierarchyPlugin):
         if saveFileName:
             properties = {'fileName': saveFileName, 'nodeID': node.GetID()}
             writer.write(properties)
+
+    def editNodeInSlicerEditor(self, node):
+        pluginHandlerSingleton = slicer.qSlicerSubjectHierarchyPluginHandler.instance()
+        pluginHandlerSingleton.pluginByName("Default").switchToModule("SlicerEditor")
+
+        # Allow some time for the module to fully load
+        slicer.app.processEvents()
+        time.sleep(0.5)  # Adjust the sleep time if necessary
+
+        editorWidget = slicer.modules.slicereditor.widgetRepresentation().self()
+        code = node.GetText().replace('\\', '\\\\').replace('`', '\\`').replace('"',
+                                                                                '\\"')  # Escape backslashes, backticks, and double quotes
+
+        # Define the JavaScript code as a string
+        jsSetEditorContent = f"""
+            function setEditorContent() {{
+                if (window.editor) {{
+                    window.editor.getModel().setValue(`{code}`);
+                }} else {{
+                    setTimeout(setEditorContent, 500);
+                }}
+            }}
+            setEditorContent();
+        """
+
+        # Use evalJS to execute the JavaScript function
+        editorWidget.editorView.evalJS(jsSetEditorContent)
+
+    def editProperties(self, itemID):
+        print("Edit Properties action triggered")
+        node = self.subjectHierarchyNode.GetItemDataNode(itemID)
+        if node:
+            self.editNodeInSlicerEditor(node)
 
 
 class PyFileFileWriter:

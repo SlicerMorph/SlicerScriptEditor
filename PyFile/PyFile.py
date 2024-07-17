@@ -66,12 +66,14 @@ class PyFileFileReader:
             text_node.SetText(content)
             text_node.SetAttribute("mimetype", "text/x-python")  # Setting the mimetype attribute
             text_node.SetAttribute("customTag", "pythonFile")  # Custom tag for additional signaling
-            print(f"Setting attributes for node {text_node.GetName()}: mimetype=text/x-python, customTag=pythonFile")  # Debug print
+            print(
+                f"Setting attributes for node {text_node.GetName()}: mimetype=text/x-python, customTag=pythonFile")  # Debug print
 
             # Verify attribute setting
             mimetype = text_node.GetAttribute("mimetype")
             customTag = text_node.GetAttribute("customTag")
-            print(f"Node {text_node.GetName()} mimetype after setting: {mimetype}, customTag after setting: {customTag}")  # Debug print
+            print(
+                f"Node {text_node.GetName()} mimetype after setting: {mimetype}, customTag after setting: {customTag}")  # Debug print
 
             # Create and configure a storage node for the text node
             storage_node = slicer.mrmlScene.AddNewNodeByClass('vtkMRMLTextStorageNode')
@@ -81,6 +83,11 @@ class PyFileFileReader:
             text_node.SetAndObserveStorageNodeID(storage_node.GetID())
 
             self.parent.loadedNodes = [text_node.GetID()]
+
+            # Notify the subject hierarchy about the new node
+            pluginHandlerSingleton = slicer.qSlicerSubjectHierarchyPluginHandler.instance()
+            shNode = pluginHandlerSingleton.subjectHierarchyNode()
+            shNode.RequestOwnerPluginSearch(text_node)  # Update the subject hierarchy
 
             # Additional verification
             created_node = slicer.mrmlScene.GetNodeByID(text_node.GetID())
