@@ -21,6 +21,7 @@ class SavePyFile(ScriptedLoadableModule):
             import SubjectHierarchyPlugins
             from SavePyFile import SavePyFileSubjectHierarchyPlugin
             scriptedPlugin = slicer.qSlicerSubjectHierarchyScriptedPlugin(None)
+            scriptedPlugin.name = "SavePyFile"
             scriptedPlugin.setPythonSource(SavePyFileSubjectHierarchyPlugin.filePath)
             pluginHandler = slicer.qSlicerSubjectHierarchyPluginHandler.instance()
             pluginHandler.registerPlugin(scriptedPlugin)
@@ -35,7 +36,7 @@ class SavePyFileSubjectHierarchyPlugin(AbstractScriptedSubjectHierarchyPlugin):
     fileIcon = None
 
     def __init__(self, scriptedPlugin):
-        super().__init__(scriptedPlugin)
+        AbstractScriptedSubjectHierarchyPlugin.__init__(self, scriptedPlugin)
 
         pluginHandlerSingleton = slicer.qSlicerSubjectHierarchyPluginHandler.instance()
         self.subjectHierarchyNode = pluginHandlerSingleton.subjectHierarchyNode()
@@ -55,8 +56,10 @@ class SavePyFileSubjectHierarchyPlugin(AbstractScriptedSubjectHierarchyPlugin):
         print("initializeIcon")
 
     def canOwnSubjectHierarchyItem(self, itemID):
-        node = self.subjectHierarchyNode.GetItemDataNode(itemID)
-        print("canOwnSubjectHierarchyItem called for itemID:", currentItemID)
+        pluginHandlerSingleton = slicer.qSlicerSubjectHierarchyPluginHandler.instance()
+        shNode = pluginHandlerSingleton.subjectHierarchyNode()
+        node = shNode.GetItemDataNode(itemID)
+
         if node:
             print("Node found:", node.GetName())
             mimetype = node.GetAttribute("mimetype")
@@ -65,20 +68,15 @@ class SavePyFileSubjectHierarchyPlugin(AbstractScriptedSubjectHierarchyPlugin):
             if mimetype == "text/x-python" or fileType == "python":
                 return 1.
 
-            # Check the file extension of the storage node
-            storageNodeID = node.GetStorageNodeID()
-            if storageNodeID:
-                storageNode = slicer.mrmlScene.GetNodeByID(storageNodeID)
-                if storageNode and storageNode.GetFileName().lower().endswith('.py'):
-                    print("storageNodeID .endswith('.py') ")
-                    return 1.
         else:
-            print("No node found for itemID:", currentItemID)
+            print("No node found for itemID:", itemID)
         return 0.0
 
     def icon(self, itemID):
-        print("icon")
-        node = self.subjectHierarchyNode.GetItemDataNode(itemID)
+        pluginHandlerSingleton = slicer.qSlicerSubjectHierarchyPluginHandler.instance()
+        shNode = pluginHandlerSingleton.subjectHierarchyNode()
+        node = shNode.GetItemDataNode(itemID)
+
         if node and (node.GetAttribute("mimetype") == "text/x-python" or node.GetAttribute("fileType") == "python"):
             return self.fileIcon
 
