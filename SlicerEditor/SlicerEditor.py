@@ -69,28 +69,28 @@ class SlicerEditorWidget(ScriptedLoadableModuleWidget):
         self.runButton = qt.QPushButton("Run")
         self.runButton.setSizePolicy(qt.QSizePolicy.Fixed, qt.QSizePolicy.Fixed)
         self.runButton.clicked.connect(self.runButtonClicked)
-
-        #Create a save button
-        self.savetoSceneButton = qt.QPushButton("Save to Scene")
-        self.savetoSceneButton.setSizePolicy(qt.QSizePolicy.Fixed, qt.QSizePolicy.Fixed)
-        self.savetoSceneButton.clicked.connect(self.saveToSceneClicked)
-
-        # Create an import button
-        self.importButton = qt.QPushButton("Open from Scene")
-        self.importButton.setSizePolicy(qt.QSizePolicy.Fixed, qt.QSizePolicy.Fixed)
-        self.importButton.clicked.connect(self.getCodeFromScene)
-
+        #
+        # #Create a save button
+        # self.savetoSceneButton = qt.QPushButton("Save to Scene")
+        # self.savetoSceneButton.setSizePolicy(qt.QSizePolicy.Fixed, qt.QSizePolicy.Fixed)
+        # self.savetoSceneButton.clicked.connect(self.saveToSceneClicked)
+        #
+        # # Create an import button
+        # self.importButton = qt.QPushButton("Open from Scene")
+        # self.importButton.setSizePolicy(qt.QSizePolicy.Fixed, qt.QSizePolicy.Fixed)
+        # self.importButton.clicked.connect(self.getCodeFromScene)
+        #
         # Create a save button
-        self.saveButton = qt.QPushButton("Save")
-        self.saveButton.setSizePolicy(qt.QSizePolicy.Fixed, qt.QSizePolicy.Fixed)
-        self.saveButton.clicked.connect(self.saveButtonClicked)
+        # self.saveButton = qt.QPushButton("Save")
+        # self.saveButton.setSizePolicy(qt.QSizePolicy.Fixed, qt.QSizePolicy.Fixed)
+        # self.saveButton.clicked.connect(self.saveButtonClicked)
 
         # Create a layout to place the buttons next to each other
         self.buttonLayout = qt.QHBoxLayout()
         self.buttonLayout.addWidget(self.runButton)
-        self.buttonLayout.addWidget(self.saveButton)
-        self.buttonLayout.addWidget(self.savetoSceneButton)
-        self.buttonLayout.addWidget(self.importButton)
+        # self.buttonLayout.addWidget(self.saveButton)
+        # self.buttonLayout.addWidget(self.savetoSceneButton)
+        # self.buttonLayout.addWidget(self.importButton)
         self.buttonLayout.addStretch()  # Add stretch to push buttons to the left
 
         self.buttonWidget = qt.QWidget()
@@ -122,47 +122,47 @@ class SlicerEditorWidget(ScriptedLoadableModuleWidget):
         # Reset the combobox to the default option
         self.fileOptionsDropdown.setCurrentIndex(0)
 
-    def newFile(self):
-        # Clear the editor
-        self.editorView.evalJS("window.editor.getModel().setValue('');")
-
-    def openFile(self):
-        # Prompt the user for a filename and location
-        filePath = qt.QFileDialog.getOpenFileName(slicer.util.mainWindow(), 'Open', '', 'Python Files (*.py)')
-        if not filePath:
-            return
-
-        # Read the file and set its content to the editor
-        with open(filePath, 'r') as file:
-            code = file.read()
-        self.editorView.evalJS(f"window.editor.getModel().setValue(`{code}`);")
-
-    def saveFileAs(self):
-        # Execute the JavaScript to get the code from the editor
-        self.editorView.evalJS("window.editor.getModel().getValue()")
-        self.savingToFileAs = True
+    # def newFile(self):
+    #     # Clear the editor
+    #     self.editorView.evalJS("window.editor.getModel().setValue('');")ss
+    #
+    # def openFile(self):
+    #     # Prompt the user for a filename and location
+    #     filePath = qt.QFileDialog.getOpenFileName(slicer.util.mainWindow(), 'Open', '', 'Python Files (*.py)')
+    #     if not filePath:
+    #         return
+    #
+    #     # Read the file and set its content to the editor
+    #     with open(filePath, 'r') as file:
+    #         code = file.read()
+    #     self.editorView.evalJS(f"window.editor.getModel().setValue(`{code}`);")
+    #
+    # def saveFileAs(self):
+    #     # Execute the JavaScript to get the code from the editor
+    #     self.editorView.evalJS("window.editor.getModel().getValue()")
+    #     self.savingToFileAs = True
 
     def runButtonClicked(self):
         # Execute the JavaScript to get the code from the editor
         self.editorView.evalJS("window.editor.getModel().getValue()")
 
-    def saveButtonClicked(self):
-        # Execute the JavaScript to get the code from the editor
-        self.editorView.evalJS("window.editor.getModel().getValue()")
-        self.savingToFileAs = True
-
-    def saveToSceneClicked(self):
-        # Execute the JavaScript to get the code from the editor
-        self.editorView.evalJS("window.editor.getModel().getValue()")
-        self.savingToScene = True
+    # def saveButtonClicked(self):
+    #     # Execute the JavaScript to get the code from the editor
+    #     self.editorView.evalJS("window.editor.getModel().getValue()")
+    #     self.savingToFileAs = True
+    #
+    # def saveToSceneClicked(self):
+    #     # Execute the JavaScript to get the code from the editor
+    #     self.editorView.evalJS("window.editor.getModel().getValue()")
+    #     self.savingToScene = True
 
     def onEvalResult(self, request, result):
         if request == "window.editor.getModel().getValue()":
             if hasattr(self, 'savingCode') and self.savingCode:
                 self.saveEditorCodeToScene(result)
                 self.savingCode = False
-            elif hasattr(self, 'savingToFileAs') and self.savingToFileAs:
-                self.saveEditorCodeToFileAs(result)
+            # elif hasattr(self, 'savingToFileAs') and self.savingToFileAs:
+            #     self.saveEditorCodeToFileAs(result)
                 self.savingToFileAs = False
             elif hasattr(self, 'savingToScene') and self.savingToScene:
                 self.saveEditorCodeToScene(result)
@@ -189,39 +189,39 @@ class SlicerEditorWidget(ScriptedLoadableModuleWidget):
             code = selectedNode.GetText()
             self.editorView.evalJS(f"window.editor.getModel().setValue(`{code}`);")
 
-    @staticmethod
-    def saveEditorCodeToScene(code):
-        if not code:
-            print("No code to save.")
-            return
-        else:
-            # Prompt the user for a filename
-            filePath = qt.QInputDialog.getText(slicer.util.mainWindow(), 'Save As', 'Enter filename:')
-            if filePath:
-                if not filePath.endswith('.py'):
-                    filePath += '.py'
-                # Create a new text node
-                textNode = slicer.mrmlScene.AddNewNodeByClass("vtkMRMLTextNode")
-                textNode.SetName(filePath)
-                textNode.SetText(code)
-                print(f"Code saved to MRML text node: {textNode.GetName()}")
+    # @staticmethod
+    # def saveEditorCodeToScene(code):
+    #     if not code:
+    #         print("No code to save.")
+    #         return
+    #     else:
+    #         # Prompt the user for a filename
+    #         filePath = qt.QInputDialog.getText(slicer.util.mainWindow(), 'Save As', 'Enter filename:')
+    #         if filePath:
+    #             if not filePath.endswith('.py'):
+    #                 filePath += '.py'
+    #             # Create a new text node
+    #             textNode = slicer.mrmlScene.AddNewNodeByClass("vtkMRMLTextNode")
+    #             textNode.SetName(filePath)
+    #             textNode.SetText(code)
+    #             print(f"Code saved to MRML text node: {textNode.GetName()}")
 
-    @staticmethod
-    def saveEditorCodeToFileAs(code):
-        if not code:
-            print("No code to save.")
-            return
-        else:
-            # Prompt the user for a filename and location
-            filePath = qt.QFileDialog.getSaveFileName(slicer.util.mainWindow(), 'Save As', '',
-                                                      'Python Files (*.py)')
-            if filePath:
-                if not filePath.endswith('.py'):
-                    filePath += '.py'
-                # Save the code to the specified file
-                with open(filePath, 'w') as file:
-                    file.write(code)
-                print(f"Code saved to file: {filePath}")
+    # @staticmethod
+    # def saveEditorCodeToFileAs(code):
+    #     if not code:
+    #         print("No code to save.")
+    #         return
+    #     else:
+    #         # Prompt the user for a filename and location
+    #         filePath = qt.QFileDialog.getSaveFileName(slicer.util.mainWindow(), 'Save As', '',
+    #                                                   'Python Files (*.py)')
+    #         if filePath:
+    #             if not filePath.endswith('.py'):
+    #                 filePath += '.py'
+    #             # Save the code to the specified file
+    #             with open(filePath, 'w') as file:
+    #                 file.write(code)
+    #             print(f"Code saved to file: {filePath}")
 
     @staticmethod
     def processEditorCode(code):
