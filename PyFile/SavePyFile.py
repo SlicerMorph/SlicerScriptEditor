@@ -98,9 +98,9 @@ class SavePyFileSubjectHierarchyPlugin(AbstractScriptedSubjectHierarchyPlugin):
         return [self.savePyAction]
 
     def showContextMenuActionsForItem(self, itemID):
-        print(f"showViewContextMenuActionsForItem called for itemID: {itemID}")
+        print(f"showContextMenuActionsForItem called for itemID: {itemID}")
 
-        # reset all menus
+        # Reset all menus
         self.savePyAction.visible = False
         self.savePyAction.enabled = False
 
@@ -136,31 +136,27 @@ class SavePyFileSubjectHierarchyPlugin(AbstractScriptedSubjectHierarchyPlugin):
             writer.write(properties)
 
     def editNodeInSlicerEditor(self, node):
-        pluginHandlerSingleton = slicer.qSlicerSubjectHierarchyPluginHandler.instance()
-        pluginHandlerSingleton.pluginByName("Default").switchToModule("SlicerEditor")
-
-        # Allow some time for the module to fully load
-        slicer.app.processEvents()
-        time.sleep(0.5)  # Adjust the sleep time if necessary
+        editorModule = slicer.modules.slicereditor
+        slicer.util.selectModule(editorModule.name)
 
         editorWidget = slicer.modules.slicereditor.widgetRepresentation().self()
         code = node.GetText().replace('\\', '\\\\').replace('`', '\\`').replace('"',
                                                                                 '\\"')  # Escape backslashes, backticks, and double quotes
 
-        # Define the JavaScript code as a string
-        jsSetEditorContent = f"""
-            function setEditorContent() {{
-                if (window.editor) {{
-                    window.editor.getModel().setValue(`{code}`);
-                }} else {{
-                    setTimeout(setEditorContent, 500);
-                }}
-            }}
-            setEditorContent();
-        """
+        def setEditorContent():
+            jsSetEditorContent = f"""
+                (function setEditorContent() {{
+                    if (window.editor && window.editor.getModel()) {{
+                        window.editor.getModel().setValue(`{code}`);
+                    }} else {{
+                        setTimeout(setEditorContent, 100);
+                    }}
+                }})();
+            """
+            editorWidget.editorView.evalJS(jsSetEditorContent)
 
-        # Use evalJS to execute the JavaScript function
-        editorWidget.editorView.evalJS(jsSetEditorContent)
+        # Adding a slight delay to ensure the editor is initialized
+        qt.QTimer.singleShot(500, setEditorContent)
 
     def editProperties(self, itemID):
         print("Edit Properties action triggered")
