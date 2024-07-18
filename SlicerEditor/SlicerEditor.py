@@ -54,6 +54,9 @@ class SlicerEditorWidget(ScriptedLoadableModuleWidget):
         self.editorView.setSizePolicy(qt.QSizePolicy.Expanding, qt.QSizePolicy.Expanding)
         self.editorView.setMinimumSize(qt.QSize(200, 350))
 
+        # Initially disable the editor view
+        self.editorView.setEnabled(False)
+
         # Create a label and a qMRMLNodeComboBox for text nodes with "text/x-python" mimetype
         self.comboBoxLabel = qt.QLabel("Script Node:")
         self.nodeComboBox = slicer.qMRMLNodeComboBox()
@@ -81,10 +84,12 @@ class SlicerEditorWidget(ScriptedLoadableModuleWidget):
         # Create run and save buttons
         self.runButton = qt.QPushButton("Run")
         self.runButton.setSizePolicy(qt.QSizePolicy.Fixed, qt.QSizePolicy.Fixed)
+        self.runButton.setEnabled(False)  # Disable the button initially
         self.runButton.clicked.connect(self.runButtonClicked)
 
         self.saveButton = qt.QPushButton("Save")
         self.saveButton.setSizePolicy(qt.QSizePolicy.Fixed, qt.QSizePolicy.Fixed)
+        self.saveButton.setEnabled(False)  # Disable the button initially
         self.saveButton.clicked.connect(self.saveButtonClicked)
 
         # Create a layout to place the buttons next to each other
@@ -116,8 +121,16 @@ class SlicerEditorWidget(ScriptedLoadableModuleWidget):
         # Get the selected node
         selectedNode = self.nodeComboBox.currentNode()
         if selectedNode:
+            self.editorView.setEnabled(True)  # Enable the editor view
+            self.runButton.setEnabled(True)  # Enable the run button
+            self.saveButton.setEnabled(True)  # Enable the save button
             code = selectedNode.GetText()
             self.editorView.evalJS(f"window.editor.getModel().setValue(`{code}`);")
+        else:
+            self.editorView.setEnabled(False)  # Disable the editor view
+            self.runButton.setEnabled(False)  # Disable the run button
+            self.saveButton.setEnabled(False)  # Disable the save button
+            self.editorView.evalJS("window.editor.getModel().setValue('');")  # Clear the editor
 
     def onNodeAdded(self, node):
         if isinstance(node, slicer.vtkMRMLTextNode):
@@ -134,7 +147,7 @@ class SlicerEditorWidget(ScriptedLoadableModuleWidget):
         # Execute the JavaScript to get the code from the editor
         self.editorView.evalJS("window.editor.getModel().getValue()")
         self.savingCode = True  # set save bool
-            
+
     def onEvalResult(self, request, result):
         if request == "window.editor.getModel().getValue()":
             if self.savingCode:
@@ -198,4 +211,4 @@ class SlicerEditorLogic(ScriptedLoadableModuleLogic):
         """
         Called when the logic class is instantiated. Can be used for initializing member variables.
         """
-        ScriptedLoadableModuleLogic.__init__(self)
+        ScriptedLoadableModuleLogic.__init__()

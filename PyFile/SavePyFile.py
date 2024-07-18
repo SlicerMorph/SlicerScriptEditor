@@ -130,7 +130,10 @@ class SavePyFileSubjectHierarchyPlugin(AbstractScriptedSubjectHierarchyPlugin):
 
     def saveNodeAsPy(self, node):
         writer = PyFileFileWriter(None)
-        saveFileName = qt.QFileDialog.getSaveFileName(None, "Save As", "", "Python Files (*.py)")
+        initialFileName = node.GetName()
+        if not initialFileName.endswith(".py"):
+            initialFileName += ".py"
+        saveFileName, _ = qt.QFileDialog.getSaveFileName(None, "Save As", initialFileName, "Python Files (*.py)")
         if saveFileName:
             properties = {'fileName': saveFileName, 'nodeID': node.GetID()}
             writer.write(properties)
