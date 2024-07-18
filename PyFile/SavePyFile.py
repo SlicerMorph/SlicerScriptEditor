@@ -133,13 +133,13 @@ class SavePyFileSubjectHierarchyPlugin(AbstractScriptedSubjectHierarchyPlugin):
         initialFileName = node.GetName()
         if not initialFileName.endswith(".py"):
             initialFileName += ".py"
-        saveFileName, _ = qt.QFileDialog.getSaveFileName(None, "Save As", initialFileName, "Python Files (*.py)")
+        saveFileName = qt.QFileDialog.getSaveFileName(None, "Save As", initialFileName, "Python Files (*.py)")
         if saveFileName:
             properties = {'fileName': saveFileName, 'nodeID': node.GetID()}
             writer.write(properties)
 
     def editNodeInSlicerEditor(self, node):
-        editorModule = slicer.modules.slicereditor
+        editorModule = slicer.modules.slicereditorssss
         slicer.util.selectModule(editorModule.name)
 
         editorWidget = slicer.modules.slicereditor.widgetRepresentation().self()
