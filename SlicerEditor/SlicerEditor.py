@@ -133,7 +133,7 @@ class SlicerEditorWidget(ScriptedLoadableModuleWidget):
     def saveButtonClicked(self):
         # Execute the JavaScript to get the code from the editor
         self.editorView.evalJS("window.editor.getModel().getValue()")
-        self.savingCode = True
+        self.savingCode = True  # set save bool
             
     def onEvalResult(self, request, result):
         if request == "window.editor.getModel().getValue()":
