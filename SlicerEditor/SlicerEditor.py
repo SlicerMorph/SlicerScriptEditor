@@ -40,6 +40,7 @@ class SlicerEditorWidget(ScriptedLoadableModuleWidget):
         Called when the user opens the module the first time and the widget is initialized.
         """
         ScriptedLoadableModuleWidget.__init__(self, parent)
+        self.savingCode = None
 
     def setup(self):
         """
@@ -69,6 +70,7 @@ class SlicerEditorWidget(ScriptedLoadableModuleWidget):
         self.nodeComboBox.noneDisplay = "(Create New Python Text Node)"
         self.nodeComboBox.setMRMLScene(slicer.mrmlScene)
         self.nodeComboBox.connect("currentNodeChanged(vtkMRMLNode*)", self.onNodeSelected)
+        self.nodeComboBox.connect("nodeAdded(vtkMRMLNode*)", self.onNodeAdded)
 
         # Create a horizontal layout for the label and qMRMLNodeComboBox
         self.comboBoxLayout = qt.QHBoxLayout()
@@ -76,14 +78,19 @@ class SlicerEditorWidget(ScriptedLoadableModuleWidget):
         self.comboBoxLayout.addWidget(self.nodeComboBox)
         self.comboBoxLayout.addStretch()  # Add stretch to push combobox to the left
 
-        # Create a run button
+        # Create run and save buttons
         self.runButton = qt.QPushButton("Run")
         self.runButton.setSizePolicy(qt.QSizePolicy.Fixed, qt.QSizePolicy.Fixed)
         self.runButton.clicked.connect(self.runButtonClicked)
 
+        self.saveButton = qt.QPushButton("Save")
+        self.saveButton.setSizePolicy(qt.QSizePolicy.Fixed, qt.QSizePolicy.Fixed)
+        self.saveButton.clicked.connect(self.saveButtonClicked)
+
         # Create a layout to place the buttons next to each other
         self.buttonLayout = qt.QHBoxLayout()
         self.buttonLayout.addWidget(self.runButton)
+        self.buttonLayout.addWidget(self.saveButton)
         self.buttonLayout.addStretch()  # Add stretch to push buttons to the left
 
         self.buttonWidget = qt.QWidget()
@@ -112,24 +119,49 @@ class SlicerEditorWidget(ScriptedLoadableModuleWidget):
             code = selectedNode.GetText()
             self.editorView.evalJS(f"window.editor.getModel().setValue(`{code}`);")
 
+    def onNodeAdded(self, node):
+        if isinstance(node, slicer.vtkMRMLTextNode):
+            storageNode = slicer.vtkMRMLTextStorageNode()
+            slicer.mrmlScene.AddNode(storageNode)
+            node.SetAndObserveStorageNodeID(storageNode.GetID())
+            print(f"Storage node added to: {node.GetName()}")
+
     def runButtonClicked(self):
         # Execute the JavaScript to get the code from the editor
         self.editorView.evalJS("window.editor.getModel().getValue()")
 
+    def saveButtonClicked(self):
+        # Execute the JavaScript to get the code from the editor
+        self.editorView.evalJS("window.editor.getModel().getValue()")
+        self.savingCode = True
+            
     def onEvalResult(self, request, result):
         if request == "window.editor.getModel().getValue()":
-            self.processEditorCode(result)
+            if self.savingCode:
+                self.saveEditorContent(result)
+                self.savingCode = False
+            else:
+                self.processEditorCode(result)
 
     @staticmethod
     def processEditorCode(code):
         if not code:
             print("No code to execute.")
             return
-        elif code:
-            slicer.app.pythonManager().executeString(code)
         else:
-            print("In Slicer you would have executed this code:")
-            print(code)
+            slicer.app.pythonManager().executeString(code)
+
+    def saveEditorContent(self, code):
+        selectedNode = self.nodeComboBox.currentNode()
+        if selectedNode:
+            selectedNode.SetText(code)
+            print(f"Code saved to node: {selectedNode.GetName()}")
+        else:
+            print("No node selected to save the code.")
+
+    def setCurrentNode(self, node):
+        """Sets the current node in the nodeComboBox."""
+        self.nodeComboBox.setCurrentNode(node)
 
     @staticmethod
     def setupSlicerPythonEnvironment():

@@ -140,6 +140,10 @@ class SavePyFileSubjectHierarchyPlugin(AbstractScriptedSubjectHierarchyPlugin):
         slicer.util.selectModule(editorModule.name)
 
         editorWidget = slicer.modules.slicereditor.widgetRepresentation().self()
+
+        # Set the node in the combo box
+        editorWidget.setCurrentNode(node)
+
         code = node.GetText().replace('\\', '\\\\').replace('`', '\\`').replace('"',
                                                                                 '\\"')  # Escape backslashes, backticks, and double quotes
 
