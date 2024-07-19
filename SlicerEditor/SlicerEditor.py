@@ -41,6 +41,7 @@ class SlicerEditorWidget(ScriptedLoadableModuleWidget):
         """
         ScriptedLoadableModuleWidget.__init__(self, parent)
         self.savingCode = None
+        self.code_history = []
 
     def setup(self):
         """
@@ -154,6 +155,7 @@ class SlicerEditorWidget(ScriptedLoadableModuleWidget):
                 self.saveEditorContent(result)
                 self.savingCode = False
             else:
+                self.code_history.append(result)
                 self.processEditorCode(result)
 
     @staticmethod
@@ -162,6 +164,7 @@ class SlicerEditorWidget(ScriptedLoadableModuleWidget):
             print("No code to execute.")
             return
         else:
+            slicer.app.pythonConsole().printOutputMessage(code)
             slicer.app.pythonManager().executeString(code)
 
     def saveEditorContent(self, code):
