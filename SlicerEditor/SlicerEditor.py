@@ -40,6 +40,9 @@ class SlicerEditorWidget(ScriptedLoadableModuleWidget):
         Called when the user opens the module the first time and the widget is initialized.
         """
         ScriptedLoadableModuleWidget.__init__(self, parent)
+        self.copyCode = None
+        self.savingCode = None
+        self.code_history = []
 
     def setup(self):
         """
@@ -51,46 +54,56 @@ class SlicerEditorWidget(ScriptedLoadableModuleWidget):
         # Create and set up the qSlicerWebWidget
         self.editorView = slicer.qSlicerWebWidget()
         self.editorView.setSizePolicy(qt.QSizePolicy.Expanding, qt.QSizePolicy.Expanding)
-        self.editorView.setMinimumSize(qt.QSize(200, 200))
+        self.editorView.setMinimumSize(qt.QSize(200, 350))
 
-        # Create a label and a dropdown (combobox) with options
-        self.comboBoxLabel = qt.QLabel("Script:")
-        self.fileOptionsDropdown = qt.QComboBox()
-        self.fileOptionsDropdown.addItems(["select option", "new script", "open script", "save script"])
-        self.fileOptionsDropdown.currentIndexChanged.connect(self.onFileOptionChanged)
+        # Initially disable the editor view
+        self.editorView.setEnabled(False)
 
-        # Create a horizontal layout for the label and combobox
+        # Create a label and a qMRMLNodeComboBox for text nodes with "text/x-python" mimetype
+        self.comboBoxLabel = qt.QLabel("Script Node:")
+        self.nodeComboBox = slicer.qMRMLNodeComboBox()
+        self.nodeComboBox.nodeTypes = ["vtkMRMLTextNode"]
+        self.nodeComboBox.addAttribute("vtkMRMLTextNode", "mimetype", "text/x-python")
+        self.nodeComboBox.showChildNodeTypes = False
+        self.nodeComboBox.showHidden = False
+        self.nodeComboBox.showChildNodeTypes = False
+        self.nodeComboBox.selectNodeUponCreation = True
+        self.nodeComboBox.noneEnabled = True
+        self.nodeComboBox.removeEnabled = True
+        self.nodeComboBox.renameEnabled = True
+        self.nodeComboBox.addEnabled = True
+        self.nodeComboBox.noneDisplay = "(Create New Python Text Node)"
+        self.nodeComboBox.setMRMLScene(slicer.mrmlScene)
+        self.nodeComboBox.connect("currentNodeChanged(vtkMRMLNode*)", self.onNodeSelected)
+        self.nodeComboBox.connect("nodeAdded(vtkMRMLNode*)", self.onNodeAdded)
+
+        # Create a horizontal layout for the label and qMRMLNodeComboBox
         self.comboBoxLayout = qt.QHBoxLayout()
         self.comboBoxLayout.addWidget(self.comboBoxLabel)
-        self.comboBoxLayout.addWidget(self.fileOptionsDropdown)
+        self.comboBoxLayout.addWidget(self.nodeComboBox)
         self.comboBoxLayout.addStretch()  # Add stretch to push combobox to the left
 
-        # Create a run button
-        self.runButton = qt.QPushButton("Run")
-        self.runButton.setSizePolicy(qt.QSizePolicy.Fixed, qt.QSizePolicy.Fixed)
-        self.runButton.clicked.connect(self.runButtonClicked)
+        # Create run, save, and copy buttons
+        # self.runButton = qt.QPushButton("Run")
+        # self.runButton.setSizePolicy(qt.QSizePolicy.Fixed, qt.QSizePolicy.Fixed)
+        # self.runButton.setEnabled(False)  # Disable the button initially
+        # self.runButton.clicked.connect(self.runButtonClicked)
 
-        #Create a save button
-        self.savetoSceneButton = qt.QPushButton("Save to Scene")
-        self.savetoSceneButton.setSizePolicy(qt.QSizePolicy.Fixed, qt.QSizePolicy.Fixed)
-        self.savetoSceneButton.clicked.connect(self.saveToSceneClicked)
-
-        # Create an import button
-        self.importButton = qt.QPushButton("Open from Scene")
-        self.importButton.setSizePolicy(qt.QSizePolicy.Fixed, qt.QSizePolicy.Fixed)
-        self.importButton.clicked.connect(self.getCodeFromScene)
-
-        # Create a save button
         self.saveButton = qt.QPushButton("Save")
         self.saveButton.setSizePolicy(qt.QSizePolicy.Fixed, qt.QSizePolicy.Fixed)
+        self.saveButton.setEnabled(False)  # Disable the button initially
         self.saveButton.clicked.connect(self.saveButtonClicked)
+
+        self.copyButton = qt.QPushButton("Copy")
+        self.copyButton.setSizePolicy(qt.QSizePolicy.Fixed, qt.QSizePolicy.Fixed)
+        self.copyButton.setEnabled(False)  # Disable the button initially
+        self.copyButton.clicked.connect(self.copyButtonClicked)
 
         # Create a layout to place the buttons next to each other
         self.buttonLayout = qt.QHBoxLayout()
-        self.buttonLayout.addWidget(self.runButton)
+        # self.buttonLayout.addWidget(self.runButton)
         self.buttonLayout.addWidget(self.saveButton)
-        self.buttonLayout.addWidget(self.savetoSceneButton)
-        self.buttonLayout.addWidget(self.importButton)
+        self.buttonLayout.addWidget(self.copyButton)
         self.buttonLayout.addStretch()  # Add stretch to push buttons to the left
 
         self.buttonWidget = qt.QWidget()
@@ -112,35 +125,29 @@ class SlicerEditorWidget(ScriptedLoadableModuleWidget):
         # Connect the evalResult signal to the slot
         self.editorView.connect("evalResult(QString,QString)", self.onEvalResult)
 
-    def onFileOptionChanged(self, index):
-        if index == 1:
-            self.newFile()
-        elif index == 2:
-            self.openFile()
-        elif index == 3:
-            self.saveFileAs()
-        # Reset the combobox to the default option
-        self.fileOptionsDropdown.setCurrentIndex(0)
+    def onNodeSelected(self):
+        # Get the selected node
+        selectedNode = self.nodeComboBox.currentNode()
+        if selectedNode:
+            self.editorView.setEnabled(True)  # Enable the editor view
+            # self.runButton.setEnabled(True)  # Enable the run button
+            self.saveButton.setEnabled(True)  # Enable the save button
+            self.copyButton.setEnabled(True)  # Enable the copy button
+            code = selectedNode.GetText()
+            self.editorView.evalJS(f"window.editor.getModel().setValue(`{code}`);")
+        else:
+            self.editorView.setEnabled(False)  # Disable the editor view
+            # self.runButton.setEnabled(False)  # Disable the run button
+            self.saveButton.setEnabled(False)  # Disable the save button
+            self.copyButton.setEnabled(False)  # Disable the copy button
+            self.editorView.evalJS("window.editor.getModel().setValue('');")  # Clear the editor
 
-    def newFile(self):
-        # Clear the editor
-        self.editorView.evalJS("window.editor.getModel().setValue('');")
-
-    def openFile(self):
-        # Prompt the user for a filename and location
-        filePath = qt.QFileDialog.getOpenFileName(slicer.util.mainWindow(), 'Open', '', 'Python Files (*.py)')
-        if not filePath:
-            return
-
-        # Read the file and set its content to the editor
-        with open(filePath, 'r') as file:
-            code = file.read()
-        self.editorView.evalJS(f"window.editor.getModel().setValue(`{code}`);")
-
-    def saveFileAs(self):
-        # Execute the JavaScript to get the code from the editor
-        self.editorView.evalJS("window.editor.getModel().getValue()")
-        self.savingToFileAs = True
+    def onNodeAdded(self, node):
+        if isinstance(node, slicer.vtkMRMLTextNode):
+            storageNode = slicer.vtkMRMLTextStorageNode()
+            slicer.mrmlScene.AddNode(storageNode)
+            node.SetAndObserveStorageNodeID(storageNode.GetID())
+            print(f"Storage node added to: {node.GetName()}")
 
     def runButtonClicked(self):
         # Execute the JavaScript to get the code from the editor
@@ -149,90 +156,52 @@ class SlicerEditorWidget(ScriptedLoadableModuleWidget):
     def saveButtonClicked(self):
         # Execute the JavaScript to get the code from the editor
         self.editorView.evalJS("window.editor.getModel().getValue()")
-        self.savingToFileAs = True
+        self.savingCode = True  # set save bool
 
-    def saveToSceneClicked(self):
+    def copyButtonClicked(self):
         # Execute the JavaScript to get the code from the editor
         self.editorView.evalJS("window.editor.getModel().getValue()")
-        self.savingToScene = True
+        self.copyCode = True  # set save bool
 
     def onEvalResult(self, request, result):
         if request == "window.editor.getModel().getValue()":
-            if hasattr(self, 'savingCode') and self.savingCode:
-                self.saveEditorCodeToScene(result)
+            if self.savingCode:
+                self.saveEditorContent(result)
                 self.savingCode = False
-            elif hasattr(self, 'savingToFileAs') and self.savingToFileAs:
-                self.saveEditorCodeToFileAs(result)
-                self.savingToFileAs = False
-            elif hasattr(self, 'savingToScene') and self.savingToScene:
-                self.saveEditorCodeToScene(result)
-                self.savingToScene = False
+            elif self.copyCode:
+                self.code_history.append(result)
+                self.copyToClipboard(result)
+                self.copyCode = False
             else:
+                self.code_history.append(result)
                 self.processEditorCode(result)
-
-    def getCodeFromScene(self):
-        # Get the text node from the user
-        textNodes = slicer.util.getNodesByClass("vtkMRMLTextNode")
-        if not textNodes:
-            qt.QMessageBox.information(slicer.util.mainWindow(), 'SlicerEditor', 'No text nodes found in the scene.')
-            return
-
-        # Let the user select a node
-        items = [''] + [node.GetName() for node in textNodes]
-        item = qt.QInputDialog.getItem(slicer.util.mainWindow(), 'Select Text Node', 'Select a text node to open:',
-                                       items, 0, False)
-
-        if item == '':
-            pass
-        else:
-            selectedNode = next(node for node in textNodes if node.GetName() == item)
-            code = selectedNode.GetText()
-            self.editorView.evalJS(f"window.editor.getModel().setValue(`{code}`);")
-
-    @staticmethod
-    def saveEditorCodeToScene(code):
-        if not code:
-            print("No code to save.")
-            return
-        else:
-            # Prompt the user for a filename
-            filePath = qt.QInputDialog.getText(slicer.util.mainWindow(), 'Save As', 'Enter filename:')
-            if filePath:
-                if not filePath.endswith('.py'):
-                    filePath += '.py'
-                # Create a new text node
-                textNode = slicer.mrmlScene.AddNewNodeByClass("vtkMRMLTextNode")
-                textNode.SetName(filePath)
-                textNode.SetText(code)
-                print(f"Code saved to MRML text node: {textNode.GetName()}")
-
-    @staticmethod
-    def saveEditorCodeToFileAs(code):
-        if not code:
-            print("No code to save.")
-            return
-        else:
-            # Prompt the user for a filename and location
-            filePath = qt.QFileDialog.getSaveFileName(slicer.util.mainWindow(), 'Save As', '',
-                                                      'Python Files (*.py)')
-            if filePath:
-                if not filePath.endswith('.py'):
-                    filePath += '.py'
-                # Save the code to the specified file
-                with open(filePath, 'w') as file:
-                    file.write(code)
-                print(f"Code saved to file: {filePath}")
+                self.copyToClipboard(result)
 
     @staticmethod
     def processEditorCode(code):
         if not code:
             print("No code to execute.")
             return
-        elif code:
-            slicer.app.pythonManager().executeString(code)
         else:
-            print("In Slicer you would have executed this code:")
-            print(code)
+            slicer.app.pythonConsole().printOutputMessage(code)
+            slicer.app.pythonManager().executeString(code)
+
+    def saveEditorContent(self, code):
+        selectedNode = self.nodeComboBox.currentNode()
+        if selectedNode:
+            selectedNode.SetText(code)
+            print(f"Code saved to node: {selectedNode.GetName()}")
+        else:
+            print("No node selected to save the code.")
+
+    def copyToClipboard(self, code):
+        clipboard = qt.QApplication.clipboard()
+        clipboard.setText(code)
+        print("Code copied to clipboard.")
+
+    def setCurrentNode(self, node):
+        """Sets the current node in the nodeComboBox."""
+        self.nodeComboBox.setCurrentNode(node)
 
     @staticmethod
     def setupSlicerPythonEnvironment():
@@ -269,4 +238,4 @@ class SlicerEditorLogic(ScriptedLoadableModuleLogic):
         """
         Called when the logic class is instantiated. Can be used for initializing member variables.
         """
-        ScriptedLoadableModuleLogic.__init__(self)
+        ScriptedLoadableModuleLogic.__init__()
