@@ -40,6 +40,7 @@ class SlicerEditorWidget(ScriptedLoadableModuleWidget):
         Called when the user opens the module the first time and the widget is initialized.
         """
         ScriptedLoadableModuleWidget.__init__(self, parent)
+        self.copyCode = None
         self.savingCode = None
         self.code_history = []
 
@@ -82,21 +83,27 @@ class SlicerEditorWidget(ScriptedLoadableModuleWidget):
         self.comboBoxLayout.addWidget(self.nodeComboBox)
         self.comboBoxLayout.addStretch()  # Add stretch to push combobox to the left
 
-        # Create run and save buttons
-        self.runButton = qt.QPushButton("Run")
-        self.runButton.setSizePolicy(qt.QSizePolicy.Fixed, qt.QSizePolicy.Fixed)
-        self.runButton.setEnabled(False)  # Disable the button initially
-        self.runButton.clicked.connect(self.runButtonClicked)
+        # Create run, save, and copy buttons
+        # self.runButton = qt.QPushButton("Run")
+        # self.runButton.setSizePolicy(qt.QSizePolicy.Fixed, qt.QSizePolicy.Fixed)
+        # self.runButton.setEnabled(False)  # Disable the button initially
+        # self.runButton.clicked.connect(self.runButtonClicked)
 
         self.saveButton = qt.QPushButton("Save")
         self.saveButton.setSizePolicy(qt.QSizePolicy.Fixed, qt.QSizePolicy.Fixed)
         self.saveButton.setEnabled(False)  # Disable the button initially
         self.saveButton.clicked.connect(self.saveButtonClicked)
 
+        self.copyButton = qt.QPushButton("Copy")
+        self.copyButton.setSizePolicy(qt.QSizePolicy.Fixed, qt.QSizePolicy.Fixed)
+        self.copyButton.setEnabled(False)  # Disable the button initially
+        self.copyButton.clicked.connect(self.copyButtonClicked)
+
         # Create a layout to place the buttons next to each other
         self.buttonLayout = qt.QHBoxLayout()
-        self.buttonLayout.addWidget(self.runButton)
+        # self.buttonLayout.addWidget(self.runButton)
         self.buttonLayout.addWidget(self.saveButton)
+        self.buttonLayout.addWidget(self.copyButton)
         self.buttonLayout.addStretch()  # Add stretch to push buttons to the left
 
         self.buttonWidget = qt.QWidget()
@@ -123,14 +130,16 @@ class SlicerEditorWidget(ScriptedLoadableModuleWidget):
         selectedNode = self.nodeComboBox.currentNode()
         if selectedNode:
             self.editorView.setEnabled(True)  # Enable the editor view
-            self.runButton.setEnabled(True)  # Enable the run button
+            # self.runButton.setEnabled(True)  # Enable the run button
             self.saveButton.setEnabled(True)  # Enable the save button
+            self.copyButton.setEnabled(True)  # Enable the copy button
             code = selectedNode.GetText()
             self.editorView.evalJS(f"window.editor.getModel().setValue(`{code}`);")
         else:
             self.editorView.setEnabled(False)  # Disable the editor view
-            self.runButton.setEnabled(False)  # Disable the run button
+            # self.runButton.setEnabled(False)  # Disable the run button
             self.saveButton.setEnabled(False)  # Disable the save button
+            self.copyButton.setEnabled(False)  # Disable the copy button
             self.editorView.evalJS("window.editor.getModel().setValue('');")  # Clear the editor
 
     def onNodeAdded(self, node):
@@ -149,14 +158,24 @@ class SlicerEditorWidget(ScriptedLoadableModuleWidget):
         self.editorView.evalJS("window.editor.getModel().getValue()")
         self.savingCode = True  # set save bool
 
+    def copyButtonClicked(self):
+        # Execute the JavaScript to get the code from the editor
+        self.editorView.evalJS("window.editor.getModel().getValue()")
+        self.copyCode = True  # set save bool
+
     def onEvalResult(self, request, result):
         if request == "window.editor.getModel().getValue()":
             if self.savingCode:
                 self.saveEditorContent(result)
                 self.savingCode = False
+            elif self.copyCode:
+                self.code_history.append(result)
+                self.copyToClipboard(result)
+                self.copyCode = False
             else:
                 self.code_history.append(result)
                 self.processEditorCode(result)
+                self.copyToClipboard(result)
 
     @staticmethod
     def processEditorCode(code):
@@ -174,6 +193,11 @@ class SlicerEditorWidget(ScriptedLoadableModuleWidget):
             print(f"Code saved to node: {selectedNode.GetName()}")
         else:
             print("No node selected to save the code.")
+
+    def copyToClipboard(self, code):
+        clipboard = qt.QApplication.clipboard()
+        clipboard.setText(code)
+        print("Code copied to clipboard.")
 
     def setCurrentNode(self, node):
         """Sets the current node in the nodeComboBox."""
