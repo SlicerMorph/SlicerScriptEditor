@@ -128,7 +128,7 @@ class SavePyFileSubjectHierarchyPlugin(AbstractScriptedSubjectHierarchyPlugin):
             writer.write(properties)
 
     def editNodeInSlicerEditor(self, node):
-        editorModule = slicer.modules.slicereditorssss
+        editorModule = slicer.modules.slicereditor
         slicer.util.selectModule(editorModule.name)
 
         editorWidget = slicer.modules.slicereditor.widgetRepresentation().self()
