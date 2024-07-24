@@ -19,6 +19,8 @@ include(${Slicer_USE_FILE})
 #-----------------------------------------------------------------------------
 # Extension modules
 add_subdirectory(SlicerEditor)
+add_subdirectory(PyFile)
+
 ## NEXT_MODULE
 
 #-----------------------------------------------------------------------------
