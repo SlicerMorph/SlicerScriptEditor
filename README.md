@@ -8,13 +8,13 @@ a simple programming editor for Slicer based on [monaco editor](https://microsof
 
 ## Description
 
-The SlicerEditor extension provides a user-friendly interface for editing and running Python scripts directly within the 3D Slicer environment, enhancing customization and workflow efficiency for researchers and developers.
+The SlicerEditor extension provides the open-source Monaco editor as a module inside the Slicer. It supports auto-completion, and syntax highlighting and allows the scripts to be directly sent to the 3D Slicer's built-in Python console.
 
 ## Module Descriptions
 
-- **SlicerEditor**: This module provides an integrated development environment within 3D Slicer using the Monaco Editor, allowing users to edit, debug, and run Python scripts directly in the application.
-- **PyFile**: This module creates and manages text nodes from imported `.py` files, enabling seamless integration and execution of Python scripts within 3D Slicer.
-- **SavePyFile**: This module offers a Subject Hierarchy plugin allowing users to export `vtkMRMLTextNode` nodes with `text/x-python` mimetype as `.py` files, facilitating easy saving and managing Python scripts.
+- **SlicerEditor**: Editor Module itself.
+- **PyFile**: Subject hierarchy plugin to create and manage text nodes from imported .py files.
+- **SavePyFile**: Subject hierarchy plugin to export vtkMRMLTextNode nodes with text/x-python mimetype as .py files.
 
 ## Typical Use Case
 
