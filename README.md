@@ -80,3 +80,7 @@ slicer.util.setSliceViewerLayers(background=smoothedVolume)
 - **Debugging**: Use `print` statements to output information to the Slicer Python Interactor for debugging purposes.
 - **Node Management**: Utilize the Slicer module widgets to manage nodes and visualize results effectively.
 - **Resources**: Refer to the [3D Slicer Script Repository](https://slicer.readthedocs.io/en/latest/developer_guide/script_repository.html) for more script examples and API documentation.
+
+## Funding Acknowledgement
+SlicerEditor is created and made available by funding from National Science Foundation (MorphoCloud: DBI/2301405; Imageomics Institute: OAC/2118240) 
+
