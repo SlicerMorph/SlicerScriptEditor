@@ -4,7 +4,7 @@ project(SlicerEditor)
 
 #-----------------------------------------------------------------------------
 # Extension meta-information
-set(EXTENSION_HOMEPAGE "https://www.slicer.org/wiki/Documentation/Nightly/Extensions/SlicerEditor")
+set(EXTENSION_HOMEPAGE "https://github.com/SlicerMorph/SlicerEditor")
 set(EXTENSION_CONTRIBUTORS "Oshane Thomas (SCRI), Steve Pieper (Isomics, Inc.), Sara Rolfe (SCRI)")
 set(EXTENSION_DESCRIPTION "Slicer Editor is a robust tool for python editing and running Python scripts directly within the 3D Slicer interactor environment. It leverages the Monaco Editor for an advanced coding experience, seamlessly integrating with Slicer’s API to streamline medical image computing workflows.")
 set(EXTENSION_ICONURL "https://www.example.com/Slicer/Extensions/SlicerEditor.png")
