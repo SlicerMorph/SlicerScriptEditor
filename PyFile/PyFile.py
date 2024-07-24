@@ -10,9 +10,10 @@ class PyFile(ScriptedLoadableModule):
         self.parent.title = 'PyFile'
         self.parent.categories = ['PyFile']
         self.parent.dependencies = []
-        self.parent.contributors = ["Oshane Thomas (SCRI), Steve Pieper (Isomics), A. Murat Maga (UW)"]
+        self.parent.contributors = ["Oshane Thomas(SCRI), Steve Pieper (Isomic, Inc.), Sara Rolfe (SCRI), Murat Maga "
+                                    "(UW)"]
         self.parent.helpText = '''This module creates a text node from the .py file being imported.'''
-        self.parent.acknowledgementText = '''Thanks to: Steve Pieper'''
+        self.parent.acknowledgementText = ''''''
         self.parent = parent
 
         # Register the custom file reader
@@ -66,14 +67,6 @@ class PyFileFileReader:
             text_node.SetText(content)
             text_node.SetAttribute("mimetype", "text/x-python")  # Setting the mimetype attribute
             text_node.SetAttribute("customTag", "pythonFile")  # Custom tag for additional signaling
-            print(
-                f"Setting attributes for node {text_node.GetName()}: mimetype=text/x-python, customTag=pythonFile")  # Debug print
-
-            # Verify attribute setting
-            mimetype = text_node.GetAttribute("mimetype")
-            customTag = text_node.GetAttribute("customTag")
-            print(
-                f"Node {text_node.GetName()} mimetype after setting: {mimetype}, customTag after setting: {customTag}")  # Debug print
 
             # Create and configure a storage node for the text node
             storage_node = slicer.mrmlScene.AddNewNodeByClass('vtkMRMLTextStorageNode')
@@ -88,13 +81,6 @@ class PyFileFileReader:
             pluginHandlerSingleton = slicer.qSlicerSubjectHierarchyPluginHandler.instance()
             shNode = pluginHandlerSingleton.subjectHierarchyNode()
             shNode.RequestOwnerPluginSearch(text_node)  # Update the subject hierarchy
-
-            # Additional verification
-            created_node = slicer.mrmlScene.GetNodeByID(text_node.GetID())
-            if created_node:
-                print(f"Verifying node {created_node.GetName()} after adding to scene")
-                for attr in created_node.GetAttributeNames():
-                    print(f"Node attribute {attr}: {created_node.GetAttribute(attr)}")
 
             return True
 
