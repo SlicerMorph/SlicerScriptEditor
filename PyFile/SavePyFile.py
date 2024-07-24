@@ -11,13 +11,13 @@ class SavePyFile(ScriptedLoadableModule):
         ScriptedLoadableModule.__init__(self, parent)
         self.parent.title = 'SavePyFile'
         self.parent.categories = ['Utilities']
-        self.parent.contributors = ["Oshane Thomas (SCRI), Steve Pieper (Isomics), A. Murat Maga (UW)"]
+        self.parent.contributors = ["Oshane Thomas(SCRI), Steve Pieper (Isomic, Inc.), Sara Rolfe (SCRI), Murat Maga "
+                                    "(UW)"]
         self.parent.helpText = '''This module provides a Subject Hierarchy plugin to export vtkMRMLTextNode nodes with 'text/x-python' mimetype as .py files.'''
-        self.parent.acknowledgementText = '''Thanks to: Steve Pieper'''
+        self.parent.acknowledgementText = ''''''
 
         def onStartupCompleted():
             """Register subject hierarchy plugin once app is initialized"""
-            print("Startup completed, registering plugin...")
             import SubjectHierarchyPlugins
             from SavePyFile import SavePyFileSubjectHierarchyPlugin
             scriptedPlugin = slicer.qSlicerSubjectHierarchyScriptedPlugin(None)
@@ -25,7 +25,6 @@ class SavePyFile(ScriptedLoadableModule):
             scriptedPlugin.setPythonSource(SavePyFileSubjectHierarchyPlugin.filePath)
             pluginHandler = slicer.qSlicerSubjectHierarchyPluginHandler.instance()
             pluginHandler.registerPlugin(scriptedPlugin)
-            print("SavePyFileSubjectHierarchyPlugin loaded and registered")
 
         slicer.app.connect("startupCompleted()", onStartupCompleted)
 
@@ -48,12 +47,10 @@ class SavePyFileSubjectHierarchyPlugin(AbstractScriptedSubjectHierarchyPlugin):
 
         self.savePyAction.connect("triggered()", self.onSavePyAction)
 
-        print("SavePyFileSubjectHierarchyPlugin initialized")
 
     def initializeIcon(self):
         iconPath = os.path.join(os.path.dirname(slicer.modules.pyfile.path), 'Resources', 'python_icon.png')
         self.fileIcon = qt.QIcon(iconPath)
-        print("initializeIcon")
 
     def canOwnSubjectHierarchyItem(self, itemID):
         pluginHandlerSingleton = slicer.qSlicerSubjectHierarchyPluginHandler.instance()
@@ -62,10 +59,8 @@ class SavePyFileSubjectHierarchyPlugin(AbstractScriptedSubjectHierarchyPlugin):
         node = shNode.GetItemDataNode(itemID)
 
         if node:
-            print("Node found:", node.GetName())
             mimetype = node.GetAttribute("mimetype")
             fileType = node.GetAttribute("fileType")
-            print("Node mimetype:", mimetype, "fileType:", fileType)
             if mimetype == "text/x-python" or fileType == "python":
                 return 1.
 
@@ -94,11 +89,9 @@ class SavePyFileSubjectHierarchyPlugin(AbstractScriptedSubjectHierarchyPlugin):
         return qt.QIcon()
 
     def itemContextMenuActions(self):
-        print("Returning context menu actions")
         return [self.savePyAction]
 
     def showContextMenuActionsForItem(self, itemID):
-        print(f"showContextMenuActionsForItem called for itemID: {itemID}")
 
         # Reset all menus
         self.savePyAction.visible = False
@@ -107,20 +100,16 @@ class SavePyFileSubjectHierarchyPlugin(AbstractScriptedSubjectHierarchyPlugin):
         # Get the node associated with the itemID
         node = self.subjectHierarchyNode.GetItemDataNode(itemID)
         if node:
-            print(f"Node found: {node.GetName()}")
             if node.IsA('vtkMRMLTextNode') and node.GetAttribute('mimetype') == 'text/x-python':
-                print("Node is a vtkMRMLTextNode with text/x-python mimetype, enabling save as .py action")
                 self.savePyAction.enabled = True
                 self.savePyAction.visible = True
             else:
-                print("Node is not a vtkMRMLTextNode with text/x-python mimetype, disabling save as .py action")
                 self.savePyAction.enabled = False
                 self.savePyAction.visible = False
         else:
             print("No node found for the given itemID")
 
     def onSavePyAction(self):
-        print("Save as .py action triggered")
         pluginHandler = slicer.qSlicerSubjectHierarchyPluginHandler.instance()
         currentItemID = pluginHandler.currentItem()
         node = self.subjectHierarchyNode.GetItemDataNode(currentItemID)
@@ -166,7 +155,6 @@ class SavePyFileSubjectHierarchyPlugin(AbstractScriptedSubjectHierarchyPlugin):
         qt.QTimer.singleShot(500, setEditorContent)
 
     def editProperties(self, itemID):
-        print("Edit Properties action triggered")
         node = self.subjectHierarchyNode.GetItemDataNode(itemID)
         if node:
             self.editNodeInSlicerEditor(node)

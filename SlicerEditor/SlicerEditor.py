@@ -24,9 +24,11 @@ class SlicerEditor(ScriptedLoadableModule):
         self.parent.title = "SlicerEditor"
         self.parent.categories = ["SlicerEditor"]
         self.parent.dependencies = []
-        self.parent.contributors = ["Murat Maga (UW), Oshane Thomas(SCRI), "
-                                    "Sara Rolfe (SCRI), Steve Pieper (Isomics, Inc."]
-        self.parent.helpText = """ """
+        self.parent.contributors = ["Oshane Thomas (SCRI), Steve Pieper (Isomic, Inc.), Sara Rolfe (SCRI), Murat Maga "
+                                    "(UW)"]
+        self.parent.helpText = """The SlicerEditor module provides an integrated development environment within 3D 
+        Slicer for editing, debugging, and running Python scripts, enhancing the scripting capabilities for users and 
+        developers."""
         self.parent.acknowledgementText = """ """
 
 
@@ -147,7 +149,6 @@ class SlicerEditorWidget(ScriptedLoadableModuleWidget):
             storageNode = slicer.vtkMRMLTextStorageNode()
             slicer.mrmlScene.AddNode(storageNode)
             node.SetAndObserveStorageNodeID(storageNode.GetID())
-            print(f"Storage node added to: {node.GetName()}")
 
     def runButtonClicked(self):
         # Execute the JavaScript to get the code from the editor
