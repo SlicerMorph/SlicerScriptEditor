@@ -116,6 +116,12 @@
                     language: 'python',
                     theme: 'vs-dark'
                 });
+
+                // Resize observer for the editor container
+                const resizeObserver = new ResizeObserver(() => {
+                    window.editor.layout();
+                });
+                resizeObserver.observe(document.getElementById('container'));
             });
         }
     </script>
