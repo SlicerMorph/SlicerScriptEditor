@@ -1,4 +1,4 @@
-<img src="./SlicerEditor.png">
+<img src="./SlicerEditor.png" width=250 alt="SlicerEditor logo">
 
 # SlicerEditor
 a simple programming editor for Slicer based on [monaco editor](https://microsoft.github.io/monaco-editor/)
