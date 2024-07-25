@@ -26,10 +26,8 @@ class SlicerEditor(ScriptedLoadableModule):
         self.parent.dependencies = []
         self.parent.contributors = ["Oshane Thomas (SCRI), Steve Pieper (Isomic, Inc.), Sara Rolfe (SCRI), Murat Maga "
                                     "(UW)"]
-        self.parent.helpText = """The SlicerEditor module provides an integrated development environment within 3D 
-        Slicer for editing, debugging, and running Python scripts, enhancing the scripting capabilities for users and 
-        developers."""
-        self.parent.acknowledgementText = """ """
+        self.parent.helpText = """The SlicerEditor module allows directly editing, and running Python scripts within Slicer application."""
+        self.parent.acknowledgementText = """SlicerEditor is created and made available by funding from National Science Foundation (MorphoCloud: DBI/2301405; Imageomics Institute: OAC/2118240)"""
 
 
 class SlicerEditorWidget(ScriptedLoadableModuleWidget):
