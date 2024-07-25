@@ -4,7 +4,8 @@
 a simple programming editor for Slicer based on [monaco editor](https://microsoft.github.io/monaco-editor/)
 
 
-![Slicer Editor](screenshot.png)
+![Slicer Editor](screenshot.png) ![Python TextNode](screenshot_2.png)
+
 
 ## Description
 
