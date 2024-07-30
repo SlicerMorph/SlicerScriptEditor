@@ -81,3 +81,9 @@ slicer.util.setSliceViewerLayers(background=smoothedVolume)
 - **Debugging**: Use `print` statements to output information to the Slicer Python Interactor for debugging purposes.
 - **Node Management**: Utilize the Slicer module widgets to manage nodes and visualize results effectively.
 - **Resources**: Refer to the [3D Slicer Script Repository](https://slicer.readthedocs.io/en/latest/developer_guide/script_repository.html) for more script examples and API documentation.
+
+### Previous Versions
+
+The SlicerEditor extension has undergone significant development and improvements over its versions. A previous iteration of the extension can be found in the repository at [pieper/SlicerEditor](https://github.com/pieper/SlicerEditor).
+
+This project was undertaken during the 3D Slicer Project Week, a collaborative event where developers and researchers work on Slicer-related projects. The specific undertaking for SlicerEditor was part of the [3D Slicer Project Week 41](https://projectweek.na-mic.org/PW41_2024_MIT/Projects/SimpleEditorForPythonScripting/), held at MIT in 2024. The goal of this project was to create a simple and effective editor for Python scripting within 3D Slicer, leveraging the Monaco Editor for enhanced user experience.
