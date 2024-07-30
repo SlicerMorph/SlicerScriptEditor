@@ -1,4 +1,4 @@
-<img src="./SlicerEditor.png">
+<img src="./SlicerEditor.png" width=250 alt="SlicerEditor logo">
 
 # SlicerEditor
 a simple programming editor for Slicer based on [monaco editor](https://microsoft.github.io/monaco-editor/)
@@ -87,3 +87,7 @@ slicer.util.setSliceViewerLayers(background=smoothedVolume)
 The SlicerEditor extension has undergone significant development and improvements over its versions. A previous iteration of the extension can be found in the repository at [pieper/SlicerEditor](https://github.com/pieper/SlicerEditor).
 
 This project was undertaken during the 3D Slicer Project Week, a collaborative event where developers and researchers work on Slicer-related projects. The specific undertaking for SlicerEditor was part of the [3D Slicer Project Week 41](https://projectweek.na-mic.org/PW41_2024_MIT/Projects/SimpleEditorForPythonScripting/), held at MIT in 2024. The goal of this project was to create a simple and effective editor for Python scripting within 3D Slicer, leveraging the Monaco Editor for enhanced user experience.
+
+### Funding Acknowledgement
+SlicerEditor is created and made available by funding from National Science Foundation (MorphoCloud: DBI/2301405; Imageomics Institute: OAC/2118240) 
+
