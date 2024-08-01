@@ -13,7 +13,8 @@ class PyFile(ScriptedLoadableModule):
         self.parent.contributors = ["Oshane Thomas(SCRI), Steve Pieper (Isomic, Inc.), Sara Rolfe (SCRI), Murat Maga "
                                     "(UW)"]
         self.parent.helpText = '''This module creates a text node from the .py file being imported.'''
-        self.parent.acknowledgementText = ''''''
+        self.parent.acknowledgementText = """The development of SlicerEditor is supported by funding from the 
+        National Science Foundation through MorphoCloud (DBI/2301405) and the Imageomics Institute (OAC/2118240)."""
         self.parent = parent
 
         # Register the custom file reader
