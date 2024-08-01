@@ -14,7 +14,8 @@ class SavePyFile(ScriptedLoadableModule):
         self.parent.contributors = ["Oshane Thomas(SCRI), Steve Pieper (Isomic, Inc.), Sara Rolfe (SCRI), Murat Maga "
                                     "(UW)"]
         self.parent.helpText = '''This module provides a Subject Hierarchy plugin to export vtkMRMLTextNode nodes with 'text/x-python' mimetype as .py files.'''
-        self.parent.acknowledgementText = ''''''
+        self.parent.acknowledgementText = """The development of SlicerEditor is supported by funding from the 
+        National Science Foundation through MorphoCloud (DBI/2301405) and the Imageomics Institute (OAC/2118240)."""
 
         def onStartupCompleted():
             """Register subject hierarchy plugin once app is initialized"""

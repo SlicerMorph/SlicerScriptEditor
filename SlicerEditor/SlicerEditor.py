@@ -29,7 +29,8 @@ class SlicerEditor(ScriptedLoadableModule):
         self.parent.helpText = """The SlicerEditor module provides an integrated development environment within 3D 
         Slicer for editing, debugging, and running Python scripts, enhancing the scripting capabilities for users and 
         developers."""
-        self.parent.acknowledgementText = """ """
+        self.parent.acknowledgementText = """The development of SlicerEditor is supported by funding from the 
+        National Science Foundation through MorphoCloud (DBI/2301405) and the Imageomics Institute (OAC/2118240)."""
 
 
 class SlicerEditorWidget(ScriptedLoadableModuleWidget):
