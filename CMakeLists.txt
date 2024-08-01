@@ -7,8 +7,8 @@ project(SlicerEditor)
 set(EXTENSION_HOMEPAGE "https://github.com/SlicerMorph/SlicerEditor")
 set(EXTENSION_CONTRIBUTORS "Oshane Thomas (SCRI), Steve Pieper (Isomics, Inc.), Sara Rolfe (SCRI)")
 set(EXTENSION_DESCRIPTION "Slicer Editor is a tool for editing and running Python scripts directly within the 3D Slicer interactor environment. It leverages the Monaco Editor for an easier coding experience.")
-set(EXTENSION_ICONURL "https://www.example.com/Slicer/Extensions/SlicerEditor.png")
-set(EXTENSION_SCREENSHOTURLS "https://www.example.com/Slicer/Extensions/SlicerEditor/Screenshots/1.png")
+set(EXTENSION_ICONURL "https://github.com/SlicerMorph/SlicerEditor/blob/main/SlicerEditor.png")
+set(EXTENSION_SCREENSHOTURLS "https://github.com/SlicerMorph/SlicerEditor/blob/main/screenshot.png https://github.com/SlicerMorph/SlicerEditor/blob/main/screenshot_2.png")
 set(EXTENSION_DEPENDS "NA") # Specified as a list or "NA" if no dependencies
 
 #-----------------------------------------------------------------------------
