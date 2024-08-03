@@ -9,8 +9,12 @@ set(MODULE_PYTHON_SCRIPTS
 set(MODULE_PYTHON_RESOURCES
   Resources/Icons/${MODULE_NAME}.png
   Resources/UI/${MODULE_NAME}.ui
-  Resources/monaco-editor/
   )
+
+# Include the monaco-editor folder and its contents
+file(GLOB_RECURSE MONACO_EDITOR_RESOURCES Resources/monaco-editor/*)
+
+list(APPEND MODULE_PYTHON_RESOURCES ${MONACO_EDITOR_RESOURCES})
 
 #-----------------------------------------------------------------------------
 slicerMacroBuildScriptedModule(
