@@ -12,9 +12,12 @@ set(MODULE_PYTHON_RESOURCES
   )
 
 # Include the monaco-editor folder and its contents
-file(GLOB_RECURSE MONACO_EDITOR_RESOURCES Resources/monaco-editor/*)
+file(GLOB_RECURSE MONACO_EDITOR_RESOURCES RELATIVE "${CMAKE_CURRENT_SOURCE_DIR}/Resources" "Resources/monaco-editor/*")
 
-list(APPEND MODULE_PYTHON_RESOURCES ${MONACO_EDITOR_RESOURCES})
+foreach(file ${MONACO_EDITOR_RESOURCES})
+  list(APPEND MODULE_PYTHON_RESOURCES "Resources/${file}")
+  message(STATUS "Adding resource: Resources/${file}")
+endforeach()
 
 #-----------------------------------------------------------------------------
 slicerMacroBuildScriptedModule(
