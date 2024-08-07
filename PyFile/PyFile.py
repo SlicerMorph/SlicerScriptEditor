@@ -8,7 +8,7 @@ class PyFile(ScriptedLoadableModule):
     def __init__(self, parent):
         ScriptedLoadableModule.__init__(self, parent)
         self.parent.title = 'PyFile'
-        self.parent.categories = ['PyFile']
+        self.parent.categories = ['Utilities']
         self.parent.dependencies = []
         self.parent.contributors = ["Oshane Thomas(SCRI), Steve Pieper (Isomic, Inc.), Sara Rolfe (SCRI), Murat Maga "
                                     "(UW)"]
