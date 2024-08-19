@@ -48,7 +48,6 @@ class SavePyFileSubjectHierarchyPlugin(AbstractScriptedSubjectHierarchyPlugin):
 
         self.savePyAction.connect("triggered()", self.onSavePyAction)
 
-
     def initializeIcon(self):
         iconPath = os.path.join(os.path.dirname(slicer.modules.pyfile.path), 'Resources', 'python_icon.png')
         self.fileIcon = qt.QIcon(iconPath)
@@ -65,8 +64,8 @@ class SavePyFileSubjectHierarchyPlugin(AbstractScriptedSubjectHierarchyPlugin):
             if mimetype == "text/x-python" or fileType == "python":
                 return 1.
 
-        else:
-            print("No node found for itemID:", itemID)
+        # else:
+        #     print("No node found for itemID:", itemID)
         return 0.0
 
     def icon(self, itemID):
