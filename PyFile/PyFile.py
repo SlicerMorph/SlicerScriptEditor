@@ -7,19 +7,14 @@ import logging
 class PyFile(ScriptedLoadableModule):
     def __init__(self, parent):
         ScriptedLoadableModule.__init__(self, parent)
-        self.parent.title = 'PyFile'
-        self.parent.categories = ['Utilities']
-        self.parent.dependencies = []
-        self.parent.contributors = ["Oshane Thomas(SCRI), Steve Pieper (Isomic, Inc.), Sara Rolfe (SCRI), Murat Maga "
-                                    "(UW)"]
-        self.parent.helpText = '''This module creates a text node from the .py file being imported.'''
-        self.parent.acknowledgementText = """The development of SlicerEditor is supported by funding from the 
-        National Science Foundation through MorphoCloud (DBI/2301405) and the Imageomics Institute (OAC/2118240)."""
+        self.parent.title = "PyFile"
+        self.parent.categories = ["Utilities"]
+        self.parent.dependencies = ["Texts"]
+        self.parent.contributors = ["Oshane Thomas (SCRI)", "Steve Pieper (Isomic, Inc.)", "Sara Rolfe (SCRI)", "Murat Maga (UW)", "Andras Lasso (PerkLab)"]
+        self.parent.helpText = "This module allows reading/writing of .py files and storing them in the scene"
+        self.parent.acknowledgementText = """The development of SlicerEditor is supported by funding from the
+National Science Foundation through MorphoCloud (DBI/2301405) and the Imageomics Institute (OAC/2118240)."""
         self.parent = parent
-
-        # Register the custom file reader
-        self.fileReader = PyFileFileReader(parent)
-        self.fileWriter = PyFileFileWriter(parent)
 
 
 class PyFileWidget(ScriptedLoadableModuleWidget):
@@ -40,41 +35,51 @@ class PyFileWidget(ScriptedLoadableModuleWidget):
         ScriptedLoadableModuleWidget.setup(self)
 
 
+def _createPythonScriptStorageNode(text_node, py_path):
+    storage_node = text_node.GetStorageNode()
+    if not storage_node:
+        storage_node = slicer.mrmlScene.AddNewNodeByClass('vtkMRMLTextStorageNode')
+    storage_node.SetFileName(py_path)
+    if hasattr(storage_node, "SetSupportedReadFileExtensions"):
+        storage_node.SetSupportedReadFileExtensions(["py"])
+        storage_node.SetSupportedWriteFileExtensions(["py"])
+    else:
+        logging.warning("This Slicer version does not support saving of Python scripts as .py files in the scene")
+    text_node.SetAndObserveStorageNodeID(storage_node.GetID())
+    return storage_node
+
+
 class PyFileFileReader:
     def __init__(self, parent):
         self.parent = parent
 
     def description(self):
-        return 'PYTHON Script'
+        return 'Python Script'
 
     def fileType(self):
-        return 'PYTHON'
+        return 'PythonScript'
 
     def extensions(self):
-        return ['PYTHON (*.py)']
+        return ['Python Script (.py)']
 
-    def canLoadFile(self, filePath):
-        return filePath.lower().endswith('.py')
+    def canLoadFileConfidence(self, filePath):
+        return 1.5 if filePath.lower().endswith('.py') else 0.0
 
     def load(self, properties):
         try:
             py_path = properties['fileName']
 
-            with open(py_path, 'r') as file:
-                content = file.read()
-
             text_node = slicer.mrmlScene.AddNewNodeByClass('vtkMRMLTextNode')
-            text_node.SetName(os.path.basename(py_path))
-            text_node.SetText(content)
             text_node.SetAttribute("mimetype", "text/x-python")  # Setting the mimetype attribute
             text_node.SetAttribute("customTag", "pythonFile")  # Custom tag for additional signaling
 
             # Create and configure a storage node for the text node
-            storage_node = slicer.mrmlScene.AddNewNodeByClass('vtkMRMLTextStorageNode')
-            storage_node.SetFileName(py_path)
+            storage_node = _createPythonScriptStorageNode(text_node, py_path)
 
-            # Associate the storage node with the text node
-            text_node.SetAndObserveStorageNodeID(storage_node.GetID())
+            text_node.SetName(storage_node.GetFileNameWithoutExtension())
+
+            if not storage_node.ReadData(text_node):
+                return False
 
             self.parent.loadedNodes = [text_node.GetID()]
 
@@ -97,16 +102,18 @@ class PyFileFileWriter:
         self.parent = parent
 
     def description(self):
-        return 'PYTHON Script'
+        return "Python Script"
 
     def fileType(self):
-        return 'PYTHON'
+        return "PythonScript"
 
-    def extensions(self):
-        return ['PYTHON (*.py)']
-
-    def canWriteObject(self, object):
-        return object.IsA('vtkMRMLTextNode') and object.GetAttribute('mimetype') == 'text/x-python'
+    def extensions(self, obj):
+        return ['Python Script (.py)']
+    
+    def canWriteObjectConfidence(self, obj):
+        # Select this custom reader by default by returning higher confidence than default
+        canWrite = obj.IsA('vtkMRMLTextNode') and obj.GetAttribute('mimetype') == 'text/x-python'
+        return 1.5 if canWrite else 0.3
 
     def write(self, properties):
         try:
@@ -118,10 +125,11 @@ class PyFileFileWriter:
                 logging.error('Failed to get node by ID: ' + node_id)
                 return False
 
-            content = text_node.GetText()
-            with open(py_path, 'w') as file:
-                file.write(content)
+            storage_node = _createPythonScriptStorageNode(text_node, py_path)
+            if not storage_node.WriteData(text_node):
+                return False
 
+            self.parent.writtenNodes = [node_id]
             return True
 
         except Exception as e:
