@@ -1,39 +1,56 @@
 import os
+import logging
 import sys
 import qt
 import slicer
 from slicer.ScriptedLoadableModule import *
 
-
 def getIndexPath(scriptName):
     # Get the path of the module
-    modulePath = os.path.dirname(slicer.modules.slicereditor.path)
+    modulePath = os.path.dirname(slicer.modules.scripteditor.path)
 
     # Construct the path to the resource script
     resourceScriptPath = os.path.join(modulePath, 'Resources', 'monaco-editor', scriptName)
     return resourceScriptPath
 
 
-class SlicerEditor(ScriptedLoadableModule):
+class ScriptEditor(ScriptedLoadableModule):
     """Uses ScriptedLoadableModule base class, available at:
     https://github.com/Slicer/Slicer/blob/main/Base/Python/slicer/ScriptedLoadableModule.py
     """
 
     def __init__(self, parent):
         ScriptedLoadableModule.__init__(self, parent)
-        self.parent.title = "SlicerEditor"
-        self.parent.categories = ["SlicerEditor"]
-        self.parent.dependencies = []
-        self.parent.contributors = ["Oshane Thomas (SCRI), Steve Pieper (Isomic, Inc.), Sara Rolfe (SCRI), Murat Maga "
-                                    "(UW)"]
-        self.parent.helpText = """The SlicerEditor module provides an integrated development environment within 3D 
-        Slicer for editing, debugging, and running Python scripts, enhancing the scripting capabilities for users and 
-        developers."""
-        self.parent.acknowledgementText = """The development of SlicerEditor is supported by funding from the 
-        National Science Foundation through MorphoCloud (DBI/2301405) and the Imageomics Institute (OAC/2118240)."""
+        self.parent.title = "Script Editor"
+        self.parent.categories = ["Utilities"]
+        self.parent.dependencies = ["Texts", "SubjectHierarchy"]
+        self.parent.contributors = ["Oshane Thomas (SCRI)", "Steve Pieper (Isomic, Inc.)", "Sara Rolfe (SCRI)", "Andras Lasso (PerkLab)", "Murat Maga (UW)"]
+        self.parent.helpText = """The Script Editor module provides an integrated development environment within 3D 
+Slicer for editing, debugging, and running Python scripts, enhancing the scripting capabilities for users and developers."""
+        self.parent.acknowledgementText = """The development of ScriptEditor is supported by funding from the
+National Science Foundation through MorphoCloud (DBI/2301405) and the Imageomics Institute (OAC/2118240)."""
+
+    def onStartupCompleted():
+        """Register subject hierarchy plugin once app is initialized"""
+        from ScriptEditorLib import ScriptEditorSubjectHierarchyPlugin
+        scriptedPlugin = slicer.qSlicerSubjectHierarchyScriptedPlugin(None)
+        scriptedPlugin.name = "SavePyFile"
+        scriptedPlugin.setPythonSource(ScriptEditorSubjectHierarchyPlugin.ScriptEditorSubjectHierarchyPlugin.filePath)
+        pluginHandler = slicer.qSlicerSubjectHierarchyPluginHandler.instance()
+        pluginHandler.registerPlugin(scriptedPlugin)
+
+    slicer.app.connect("startupCompleted()", onStartupCompleted)
+
+    # def setup(self):
+    #     # Register subject hierarchy plugin
+    #     from ScriptEditorPlugins import ScriptEditorSubjectHierarchyPlugin
+
+    #     scriptedPlugin = slicer.qSlicerSubjectHierarchyScriptedPlugin(None)
+
+    #     scriptedPlugin.setPythonSource(ScriptEditorSubjectHierarchyPlugin.filePath)
 
 
-class SlicerEditorWidget(ScriptedLoadableModuleWidget):
+class ScriptEditorWidget(ScriptedLoadableModuleWidget):
     """Uses ScriptedLoadableModuleWidget base class, available at:
     https://github.com/Slicer/Slicer/blob/main/Base/Python/slicer/ScriptedLoadableModule.py
     """
@@ -226,7 +243,7 @@ class SlicerEditorWidget(ScriptedLoadableModuleWidget):
         os.environ['PYTHONPATH'] = os.pathsep.join(slicer_paths)
 
 
-class SlicerEditorLogic(ScriptedLoadableModuleLogic):
+class ScriptEditorLogic(ScriptedLoadableModuleLogic):
     """This class should implement all the actual
     computation done by your module.  The interface
     should be such that other python code can import
@@ -241,3 +258,106 @@ class SlicerEditorLogic(ScriptedLoadableModuleLogic):
         Called when the logic class is instantiated. Can be used for initializing member variables.
         """
         ScriptedLoadableModuleLogic.__init__()
+
+def _createPythonScriptStorageNode(text_node, py_path):
+    storage_node = text_node.GetStorageNode()
+    if not storage_node:
+        storage_node = slicer.mrmlScene.AddNewNodeByClass('vtkMRMLTextStorageNode')
+    storage_node.SetFileName(py_path)
+    if hasattr(storage_node, "SetSupportedReadFileExtensions"):
+        storage_node.SetSupportedReadFileExtensions(["py"])
+        storage_node.SetSupportedWriteFileExtensions(["py"])
+    else:
+        logging.warning("This Slicer version does not support saving of Python scripts as .py files in the scene")
+    text_node.SetAndObserveStorageNodeID(storage_node.GetID())
+    return storage_node
+
+
+class ScriptEditorFileReader:
+    def __init__(self, parent):
+        self.parent = parent
+
+    def description(self):
+        return 'Python Script'
+
+    def fileType(self):
+        return 'PythonScript'
+
+    def extensions(self):
+        return ['Python Script (.py)']
+
+    def canLoadFileConfidence(self, filePath):
+        return 1.5 if filePath.lower().endswith('.py') else 0.0
+
+    def load(self, properties):
+        try:
+            py_path = properties['fileName']
+
+            text_node = slicer.mrmlScene.AddNewNodeByClass('vtkMRMLTextNode')
+            text_node.SetAttribute("mimetype", "text/x-python")  # Setting the mimetype attribute
+            text_node.SetAttribute("customTag", "pythonFile")  # Custom tag for additional signaling
+
+            # Create and configure a storage node for the text node
+            storage_node = _createPythonScriptStorageNode(text_node, py_path)
+
+            text_node.SetName(storage_node.GetFileNameWithoutExtension())
+
+            if not storage_node.ReadData(text_node):
+                return False
+
+            self.parent.loadedNodes = [text_node.GetID()]
+
+            # Notify the subject hierarchy about the new node
+            pluginHandlerSingleton = slicer.qSlicerSubjectHierarchyPluginHandler.instance()
+            shNode = pluginHandlerSingleton.subjectHierarchyNode()
+            shNode.RequestOwnerPluginSearch(text_node)  # Update the subject hierarchy
+
+            return True
+
+        except Exception as e:
+            logging.error('Failed to load file: ' + str(e))
+            import traceback
+            traceback.print_exc()
+            return False
+
+
+class ScriptEditorFileWriter:
+    def __init__(self, parent):
+        self.parent = parent
+
+    def description(self):
+        return "Python Script"
+
+    def fileType(self):
+        return "PythonScript"
+
+    def extensions(self, obj):
+        return ['Python Script (.py)']
+    
+    def canWriteObjectConfidence(self, obj):
+        # Select this custom reader by default by returning higher confidence than default
+        canWrite = obj.IsA('vtkMRMLTextNode') and obj.GetAttribute('mimetype') == 'text/x-python'
+        return 1.5 if canWrite else 0.3
+
+    def write(self, properties):
+        try:
+            py_path = properties['fileName']
+            node_id = properties['nodeID']
+            text_node = slicer.mrmlScene.GetNodeByID(node_id)
+
+            if text_node is None:
+                logging.error('Failed to get node by ID: ' + node_id)
+                return False
+
+            storage_node = _createPythonScriptStorageNode(text_node, py_path)
+            if not storage_node.WriteData(text_node):
+                return False
+
+            self.parent.writtenNodes = [node_id]
+            return True
+
+        except Exception as e:
+            logging.error('Failed to write file: ' + str(e))
+            import traceback
+            traceback.print_exc()
+            return False
