@@ -1,41 +1,37 @@
-<img src="./SlicerEditor.png" width=250 alt="SlicerEditor logo">
+<img src="./ScriptEditor.png" width=250 alt="ScriptEditor logo">
 
-# SlicerEditor
-a simple programming editor for Slicer based on [monaco editor](https://microsoft.github.io/monaco-editor/)
+# ScriptEditor
+A simple embedded programming editor for 3D Slicer, based on [monaco editor](https://microsoft.github.io/monaco-editor/).
 
-
-![Slicer Editor](screenshot.png) ![Python TextNode](screenshot_2.png)
-
+![Script Editor](screenshot.png) ![Python TextNode](screenshot_2.png)
 
 ## Description
 
-The SlicerEditor extension provides the open-source Monaco editor as a module inside the Slicer. It supports auto-completion, and syntax highlighting and allows the scripts to be directly sent to the 3D Slicer's built-in Python console.
+The ScriptEditor extension provides the open-source Monaco editor as a module inside the Slicer. It supports auto-completion, and syntax highlighting and allows the scripts to be directly sent to the 3D Slicer's built-in Python console.
 
 ## Module Descriptions
 
-- **SlicerEditor**: Editor Module itself.
-- **PyFile**: Subject hierarchy plugin to create and manage text nodes from imported .py files.
-- **SavePyFile**: Subject hierarchy plugin to export vtkMRMLTextNode nodes with text/x-python mimetype as .py files.
+- **Script Editor**: This is the only module that the extension provides.
 
 ## Typical Use Case
 
-The most typical use case for SlicerEditor is to develop, debug, and execute Python scripts directly within the 3D Slicer environment. This allows users to automate tasks, create custom analyses, and enhance the functionality of 3D Slicer through scripting.
+The most typical use case for Script Editor is to develop, debug, and execute Python scripts directly within the 3D Slicer environment. This allows users to automate tasks, create custom analyses, and enhance the functionality of 3D Slicer through scripting.
 
 ## Step-by-Step Tutorial
 
-### Step 1: Install SlicerEditor Extension
+### Step 1: Install ScriptEditor Extension
 1. Open 3D Slicer.
-2. Go to the "Extension Manager" by clicking on the "View" menu and selecting "Extension Manager".
-3. Search for "SlicerEditor".
-4. Click "Install" next to the SlicerEditor extension.
+2. Go to the `Extension Manager` by clicking on the `View` menu and selecting `Extension Manager`.
+3. Search for `ScriptEditor`.
+4. Click `Install` next to the `ScriptEditor` extension.
 5. Restart 3D Slicer to activate the extension.
 
-### Step 2: Open SlicerEditor Module
-1. After restarting, go to the "Modules" menu.
-2. Select "SlicerEditor" from the list of installed modules.
+### Step 2: Open Script Editor Module
+1. After restarting, hit `Ctrl` + `F` (or click the search icon in the toolbar).
+2. Select `Script Editor` from the list of modules.
 
 ### Step 3: Create or Select a Python Text Node
-1. In the SlicerEditor module, you will see a combo box labeled "Script Node".
+1. In the `Script Editor` module, you will see a combo box labeled `Script Node`.
 2. You can create a new Python text node by selecting "(Create New Python Text Node)" from the combo box.
 3. Alternatively, you can select an existing Python text node if you have previously created one.
 
@@ -82,12 +78,13 @@ slicer.util.setSliceViewerLayers(background=smoothedVolume)
 - **Node Management**: Utilize the Slicer module widgets to manage nodes and visualize results effectively.
 - **Resources**: Refer to the [3D Slicer Script Repository](https://slicer.readthedocs.io/en/latest/developer_guide/script_repository.html) for more script examples and API documentation.
 
-### Previous Versions
+## Previous Versions
 
-The SlicerEditor extension has undergone significant development and improvements over its versions. A previous iteration of the extension can be found in the repository at [pieper/SlicerEditor](https://github.com/pieper/SlicerEditor).
+The Script Editor extension has undergone significant development and improvements over its versions. A previous iteration of the extension can be found in the repository at [pieper/SlicerEditor](https://github.com/pieper/SlicerEditor).
 
-This project was undertaken during the 3D Slicer Project Week, a collaborative event where developers and researchers work on Slicer-related projects. The specific undertaking for SlicerEditor was part of the [3D Slicer Project Week 41](https://projectweek.na-mic.org/PW41_2024_MIT/Projects/SimpleEditorForPythonScripting/), held at MIT in 2024. The goal of this project was to create a simple and effective editor for Python scripting within 3D Slicer, leveraging the Monaco Editor for enhanced user experience.
+This project was undertaken during the 3D Slicer Project Week, a collaborative event where developers and researchers work on Slicer-related projects. The specific undertaking for Script Editor was part of the [3D Slicer Project Week 41](https://projectweek.na-mic.org/PW41_2024_MIT/Projects/SimpleEditorForPythonScripting/), held at MIT in 2024. The goal of this project was to create a simple and effective editor for Python scripting within 3D Slicer, leveraging the Monaco Editor for enhanced user experience.
 
-### Funding Acknowledgement
-SlicerEditor is created and made available by funding from National Science Foundation (MorphoCloud: DBI/2301405; Imageomics Institute: OAC/2118240) 
+## Funding Acknowledgement
+
+ScriptEditor is created and made available by funding from National Science Foundation (MorphoCloud: DBI/2301405; Imageomics Institute: OAC/2118240) 
 
