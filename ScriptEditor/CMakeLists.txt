@@ -4,6 +4,8 @@ set(MODULE_NAME ScriptEditor)
 #-----------------------------------------------------------------------------
 set(MODULE_PYTHON_SCRIPTS
   ${MODULE_NAME}.py
+  ${MODULE_NAME}Lib/${MODULE_NAME}SubjectHierarchyPlugin.py
+  ${MODULE_NAME}Lib/__init__.py 
   )
 
 set(MODULE_PYTHON_RESOURCES
