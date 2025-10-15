@@ -1,6 +1,7 @@
 import os
 import logging
 import sys
+import json
 import qt
 import slicer
 from slicer.ScriptedLoadableModule import *
@@ -180,9 +181,107 @@ class ScriptEditorWidget(ScriptedLoadableModuleWidget):
         # Connect the evalResult signal to the slot
         self.editorView.connect("evalResult(QString,QString)", self.onEvalResult)
         
-        # Add a delay to ensure Monaco editor is fully loaded before setup
-        qt.QTimer.singleShot(3000, self.setupEditorFeatures)
+        # Set up drag and drop handling
+        self.setupDragDropHandling()
+        
+        # Set up Monaco editor features when ready - use a more robust approach
+        self.setupEditorFeaturesWhenReady()
+        
+        # Also set up a fallback timer in case the readiness detection fails completely
+        qt.QTimer.singleShot(5000, self._fallbackSetup)
+    
+    def _sanitizeScriptFileName(self, name):
+        """Sanitize a script name for use as a filename"""
+        if not name:
+            return "Script"
+        safeName = "".join(c for c in name if c.isalnum() or c in (' ', '_', '-')).strip()
+        return safeName if safeName else "Script"
+    
+    def setupEditorFeaturesWhenReady(self):
+        """Setup editor features with a more robust readiness check"""
+        readinessScript = """
+        (function() {
+            try {
+                if (window.monaco && window.editor && typeof window.editor.getModel === 'function' && window.editor.getModel()) {
+                    return 'ready';
+                }
+            } catch (e) {
+                console.log('Editor readiness check error:', e);
+            }
+            return 'not-ready';
+        })();
+        """
+        self._readinessCheckAttempts = 0
+        self._maxReadinessAttempts = 30  # 30 attempts with 100ms intervals = 3 seconds max
+        self.editorView.evalJS(readinessScript)
+    
+    def _checkEditorReadiness(self):
+        """Internal method to handle readiness checking"""
+        self._readinessCheckAttempts += 1
+        if self._readinessCheckAttempts > self._maxReadinessAttempts:
+            print("Warning: Monaco editor readiness timeout, proceeding anyway")
+            self.setupEditorFeatures()
+            return
+        
+        # Try again after 100ms
+        def retryReadinessCheck():
+            readinessScript = """
+                (function() {
+                    try {
+                        if (window.monaco && window.editor && typeof window.editor.getModel === 'function' && window.editor.getModel()) {
+                            return 'ready';
+                        }
+                    } catch (e) {
+                        console.log('Editor readiness check error:', e);
+                    }
+                    return 'not-ready';
+                })();
+            """
+            self.editorView.evalJS(readinessScript)
+        qt.QTimer.singleShot(100, retryReadinessCheck)
+    
+    def _fallbackSetup(self):
+        """Fallback setup in case readiness detection fails"""
+        if not hasattr(self, '_editorSetupComplete') or not self._editorSetupComplete:
+            print("Editor readiness detection timed out, attempting fallback setup...")
+            self.setupEditorFeatures()
+    
+    def setupDragDropHandling(self):
+        """Setup drag and drop handling to prevent files from being dropped directly into Monaco"""
+        # First, try to disable drag and drop at the QWebView level
+        try:
+            # Get the underlying QWebView and disable its drag and drop
+            webView = self.editorView.webView()
+            if webView:
+                webView.setAcceptDrops(False)
+                print("Disabled drag and drop at QWebView level")
+        except Exception as e:
+            print(f"Could not disable QWebView drag and drop: {e}")
+        
+        # Instead of overriding methods, use an event filter
+        try:
+            self.dragDropEventFilter = DragDropEventFilter(self)
+            self.editorView.installEventFilter(self.dragDropEventFilter)
+            print("Installed drag and drop event filter")
+        except Exception as e:
+            print(f"Could not install event filter: {e}")
+        
+        # Also try to disable accepts drops entirely
+        try:
+            self.editorView.setAcceptDrops(False)
+            print("Disabled acceptDrops on editor view")
+        except Exception as e:
+            print(f"Could not disable acceptDrops: {e}")
+        
+        # Simple drag and drop blocking for Monaco (less aggressive)
+        dragDropScript = """
+        console.log('Setting up simple drag and drop blocking...');
+        """
+        
+        # Apply the script immediately and with delays to ensure it takes effect\n        self.editorView.evalJS(dragDropScript)\n        qt.QTimer.singleShot(1000, lambda: self.editorView.evalJS(dragDropScript))\n        qt.QTimer.singleShot(3000, lambda: self.editorView.evalJS(dragDropScript))\n    \n    def onPageLoadFinished(self, success):\n        \"\"\"Called when the Monaco editor page finishes loading\"\"\"\n        if success:\n            # Immediately inject drag and drop blocking\n            immediateBlockScript = \"\"\"\n            // Block drag and drop as early as possible\n            document.addEventListener('dragover', function(e) {\n                e.preventDefault();\n                e.stopImmediatePropagation();\n            }, true);\n            \n            document.addEventListener('drop', function(e) {\n                e.preventDefault();\n                e.stopImmediatePropagation();\n                console.log('File drop blocked - please drop files in the main Slicer window instead');\n            }, true);\n            \n            // Also block on window\n            window.addEventListener('dragover', function(e) {\n                e.preventDefault();\n                e.stopImmediatePropagation();\n            }, true);\n            \n            window.addEventListener('drop', function(e) {\n                e.preventDefault();\n                e.stopImmediatePropagation();\n            }, true);\n            \n            console.log('Early drag and drop blocking installed');\n            \"\"\"\n            self.editorView.evalJS(immediateBlockScript)"
 
+
+    
     def onBrowseSaveLocation(self):
         """Open a dialog to choose save location for scripts"""
         currentPath = self.saveLocationPathEdit.text
@@ -212,9 +311,7 @@ class ScriptEditorWidget(ScriptedLoadableModuleWidget):
                     # Only update if there's no existing file (i.e., it's a new script)
                     if not existingFileName or existingFileName == "":
                         nodeName = selectedNode.GetName() if selectedNode.GetName() else "Script"
-                        safeName = "".join(c for c in nodeName if c.isalnum() or c in (' ', '_', '-')).strip()
-                        if not safeName:
-                            safeName = "Script"
+                        safeName = self._sanitizeScriptFileName(nodeName)
                         newFileName = os.path.join(directory, f"{safeName}.py")
                         storageNode.SetFileName(newFileName)
                         print(f"File path set to: {newFileName}")
@@ -226,7 +323,6 @@ class ScriptEditorWidget(ScriptedLoadableModuleWidget):
         """Update all script nodes without existing file locations to use the new directory"""
         # Find all text nodes with python mimetype
         collection = slicer.mrmlScene.GetNodesByClass("vtkMRMLTextNode")
-        collection.UnRegister(None)
         
         for i in range(collection.GetNumberOfItems()):
             node = collection.GetItemAsObject(i)
@@ -237,14 +333,15 @@ class ScriptEditorWidget(ScriptedLoadableModuleWidget):
                     # Only update if there's no existing file
                     if not existingFileName or existingFileName == "":
                         nodeName = node.GetName() if node.GetName() else "Script"
-                        safeName = "".join(c for c in nodeName if c.isalnum() or c in (' ', '_', '-')).strip()
-                        if not safeName:
-                            safeName = "Script"
+                        safeName = self._sanitizeScriptFileName(nodeName)
                         newFileName = os.path.join(directory, f"{safeName}.py")
                         storageNode.SetFileName(newFileName)
+        
+        collection.UnRegister(None)
 
     def setupEditorFeatures(self):
         """Setup editor features after Monaco is fully loaded"""
+        self._editorSetupComplete = True
         self.setupContextMenu()
         self.setTheme("vs")  # Set default light theme
         self.setupChangeDetection()  # Set up change detection for marking nodes as modified
@@ -253,29 +350,50 @@ class ScriptEditorWidget(ScriptedLoadableModuleWidget):
         """Setup Monaco editor to detect content changes and mark node as modified"""
         changeDetectionScript = """
         (function() {
-            if (!window.editor) {
-                console.log('Editor not ready for change detection, retrying in 1 second...');
-                setTimeout(arguments.callee, 1000);
-                return;
+            try {
+                if (!window.editor || typeof window.editor.onDidChangeModelContent !== 'function' || typeof window.editor.getModel !== 'function') {
+                    console.log('Editor not ready for change detection, retrying in 1 second...');
+                    setTimeout(arguments.callee, 1000);
+                    return;
+                }
+                
+                // Set up content change detection with direct callback to Python
+                window.editor.onDidChangeModelContent(function(e) {
+                    try {
+                        // Use a debounced approach to avoid too many calls
+                        if (window.changeTimeout) {
+                            clearTimeout(window.changeTimeout);
+                        }
+                        window.changeTimeout = setTimeout(function() {
+                            try {
+                                // Signal content change to Python
+                                window.pythonContentChanged = true;
+                                // Get current content and signal Python
+                                if (window.editor && typeof window.editor.getModel === 'function' && window.editor.getModel()) {
+                                    var content = window.editor.getModel().getValue();
+                                    window.currentEditorContent = content;
+                                }
+                            } catch (e) {
+                                console.log('Error in change timeout:', e);
+                            }
+                        }, 1000); // Debounce for 1 second
+                    } catch (e) {
+                        console.log('Error in change detection callback:', e);
+                    }
+                });
+                
+                console.log('Change detection initialized with callback');
+            } catch (e) {
+                console.log('Error setting up change detection:', e);
             }
-            
-            // Track if content has changed
-            window.editorContentChanged = false;
-            
-            // Listen for content changes
-            window.editor.onDidChangeModelContent(function(e) {
-                window.editorContentChanged = true;
-            });
-            
-            console.log('Change detection initialized');
         })();
         """
         self.editorView.evalJS(changeDetectionScript)
         
-        # Set up a timer to periodically check for changes and mark node as modified
+        # Set up a timer to check for the callback signal
         self.changeCheckTimer = qt.QTimer()
         self.changeCheckTimer.timeout.connect(self.checkForContentChanges)
-        self.changeCheckTimer.start(1000)  # Check every second
+        self.changeCheckTimer.start(1000)  # Check every second for the callback signal
         self._checkingChanges = False
         self._updatingFromChangeDetection = False
     
@@ -284,7 +402,7 @@ class ScriptEditorWidget(ScriptedLoadableModuleWidget):
         if self._checkingChanges:
             return
         self._checkingChanges = True
-        self.editorView.evalJS("window.editorContentChanged || false")
+        self.editorView.evalJS("window.pythonContentChanged || false")
     
     def onThemeChanged(self):
         """Handle theme radio button changes"""
@@ -302,11 +420,15 @@ class ScriptEditorWidget(ScriptedLoadableModuleWidget):
         """Set the Monaco editor font size"""
         fontSizeScript = f"""
         (function() {{
-            if (window.monaco && window.editor) {{
-                window.editor.updateOptions({{ fontSize: {size} }});
-                console.log('Font size set to: {size}px');
-            }} else {{
-                console.log('Editor not ready for font size change');
+            try {{
+                if (window.monaco && window.editor && typeof window.editor.updateOptions === 'function') {{
+                    window.editor.updateOptions({{ fontSize: {size} }});
+                    console.log('Font size set to: {size}px');
+                }} else {{
+                    console.log('Editor not ready for font size change');
+                }}
+            }} catch (e) {{
+                console.log('Error setting font size:', e);
             }}
         }})();
         """
@@ -316,11 +438,15 @@ class ScriptEditorWidget(ScriptedLoadableModuleWidget):
         """Set the Monaco editor theme"""
         themeScript = f"""
         (function() {{
-            if (window.monaco && window.editor) {{
-                monaco.editor.setTheme('{themeName}');
-                console.log('Theme set to: {themeName}');
-            }} else {{
-                console.log('Editor not ready for theme change');
+            try {{
+                if (window.monaco && window.monaco.editor && typeof window.monaco.editor.setTheme === 'function') {{
+                    monaco.editor.setTheme('{themeName}');
+                    console.log('Theme set to: {themeName}');
+                }} else {{
+                    console.log('Editor not ready for theme change');
+                }}
+            }} catch (e) {{
+                console.log('Error setting theme:', e);
             }}
         }})();
         """
@@ -330,40 +456,59 @@ class ScriptEditorWidget(ScriptedLoadableModuleWidget):
         """Setup Monaco editor context menu with 'Send to Python Console' option"""
         contextMenuScript = """
         (function() {
-            if (!window.editor) {
-                console.log('Editor not ready, retrying in 1 second...');
-                setTimeout(arguments.callee, 1000);
-                return;
-            }
-            
-            // Create a function to get selected text
-            window.getSelectedText = function() {
-                var selection = window.editor.getSelection();
-                if (selection) {
-                    return window.editor.getModel().getValueInRange(selection);
+            try {
+                if (!window.editor || typeof window.editor.getSelection !== 'function' || typeof window.editor.addAction !== 'function') {
+                    console.log('Editor not ready, retrying in 1 second...');
+                    setTimeout(arguments.callee, 1000);
+                    return;
                 }
-                return '';
-            };
-            
-            // Add context menu action to send selected text to Python console
-            window.editor.addAction({
-                id: 'send-to-python-console',
-                label: 'Send Selection to Python Console',
-                contextMenuGroupId: 'navigation',
-                contextMenuOrder: 1.5,
-                keybindings: [
-                    monaco.KeyMod.CtrlCmd | monaco.KeyCode.Enter
-                ],
-                run: function(editor) {
-                    var selection = editor.getSelection();
-                    var selectedText = editor.getModel().getValueInRange(selection);
-                    if (selectedText) {
-                        window.selectedCodeForExecution = selectedText;
+                
+                // Create a function to get selected text
+                window.getSelectedText = function() {
+                    try {
+                        if (window.editor && typeof window.editor.getSelection === 'function' && typeof window.editor.getModel === 'function') {
+                            var selection = window.editor.getSelection();
+                            if (selection && window.editor.getModel()) {
+                                return window.editor.getModel().getValueInRange(selection);
+                            }
+                        }
+                    } catch (e) {
+                        console.log('Error getting selected text:', e);
                     }
-                    return null;
-                }
-            });
-            console.log('Context menu action registered successfully');
+                    return '';
+                };
+                
+                // Add context menu action to send selected text to Python console
+                window.editor.addAction({
+                    id: 'send-to-python-console',
+                    label: 'Send Selection to Python Console',
+                    contextMenuGroupId: 'navigation',
+                    contextMenuOrder: 1.5,
+                    keybindings: [
+                        monaco.KeyMod.CtrlCmd | monaco.KeyCode.Enter
+                    ],
+                    run: function(editor) {
+                        try {
+                            if (editor && typeof editor.getSelection === 'function' && typeof editor.getModel === 'function') {
+                                var selection = editor.getSelection();
+                                var model = editor.getModel();
+                                if (selection && model) {
+                                    var selectedText = model.getValueInRange(selection);
+                                    if (selectedText) {
+                                        window.selectedCodeForExecution = selectedText;
+                                    }
+                                }
+                            }
+                        } catch (e) {
+                            console.log('Error in context menu action:', e);
+                        }
+                        return null;
+                    }
+                });
+                console.log('Context menu action registered successfully');
+            } catch (e) {
+                console.log('Error setting up context menu:', e);
+            }
         })();
         """
         self.editorView.evalJS(contextMenuScript)
@@ -372,7 +517,7 @@ class ScriptEditorWidget(ScriptedLoadableModuleWidget):
         # We'll poll for the selected code when the action is triggered
         self.contextMenuTimer = qt.QTimer()
         self.contextMenuTimer.timeout.connect(self.checkForSelectedCode)
-        self.contextMenuTimer.start(100)  # Check every 100ms
+        self.contextMenuTimer.start(400)  # Check every 400ms (less aggressive)
     
     def checkForSelectedCode(self):
         """Check if there's selected code to execute from the context menu"""
@@ -404,10 +549,11 @@ class ScriptEditorWidget(ScriptedLoadableModuleWidget):
             
             self.editorView.setEnabled(True)  # Enable the editor view
             code = selectedNode.GetText()
-            self.editorView.evalJS(f"window.editor.getModel().setValue(`{code}`);")
+            # Use defensive code to avoid errors if editor is not ready
+            self.editorView.evalJS('if (window.editor && window.editor.getModel) { window.editor.getModel().setValue(' + json.dumps(code) + '); }')
         else:
             self.editorView.setEnabled(False)  # Disable the editor view
-            self.editorView.evalJS("window.editor.getModel().setValue('');")  # Clear the editor
+            self.editorView.evalJS("if (window.editor && window.editor.getModel) { window.editor.getModel().setValue(''); }")  # Clear the editor
     
     def ensureStorageNodeConfigured(self, node):
         """Ensure the storage node is properly configured for .py files"""
@@ -438,9 +584,7 @@ class ScriptEditorWidget(ScriptedLoadableModuleWidget):
             if saveLocation and saveLocation != "No location set (will prompt on save)":
                 nodeName = node.GetName() if node.GetName() else "Script"
                 # Clean the node name for use as filename
-                safeName = "".join(c for c in nodeName if c.isalnum() or c in (' ', '_', '-')).strip()
-                if not safeName:
-                    safeName = "Script"
+                safeName = self._sanitizeScriptFileName(nodeName)
                 newFileName = os.path.join(saveLocation, f"{safeName}.py")
                 storageNode.SetFileName(newFileName)
 
@@ -450,14 +594,23 @@ class ScriptEditorWidget(ScriptedLoadableModuleWidget):
             self.ensureStorageNodeConfigured(node)
 
     def onEvalResult(self, request, result):
+        # Check if this is a readiness check result
+        if "window.monaco && window.editor && typeof window.editor.getModel" in request:
+            if result == "ready":
+                self.setupEditorFeatures()
+                return
+            else:
+                self._checkEditorReadiness()
+                return
+        
         # Check if this is the result from checking for content changes
-        if request == "window.editorContentChanged || false":
+        if request == "window.pythonContentChanged || false":
             if result == "true":
                 # Content has changed - get the current content to update the node
-                self.editorView.evalJS("window.editor.getModel().getValue()")
+                self.editorView.evalJS("window.currentEditorContent || ''")
                 self._updatingFromChangeDetection = True
-                # Reset the flag
-                self.editorView.evalJS("window.editorContentChanged = false;")
+                # Reset the flags
+                self.editorView.evalJS("window.pythonContentChanged = false; window.currentEditorContent = null;")
             self._checkingChanges = False
             return
         
@@ -470,7 +623,7 @@ class ScriptEditorWidget(ScriptedLoadableModuleWidget):
                 self.editorView.evalJS("window.selectedCodeForExecution = null;")
             return
             
-        if request == "window.editor.getModel().getValue()":
+        if request == "window.currentEditorContent || ''" or request == "window.editor.getModel().getValue()":
             # Check if this is from change detection
             if hasattr(self, '_updatingFromChangeDetection') and self._updatingFromChangeDetection:
                 self._updatingFromChangeDetection = False
@@ -514,7 +667,8 @@ class ScriptEditorWidget(ScriptedLoadableModuleWidget):
                     # Use the user-specified save location
                     saveDir = self.saveLocationPathEdit.text
                     nodeName = selectedNode.GetName() if selectedNode.GetName() else "Script"
-                    fileName = os.path.join(saveDir, f"{nodeName}.py")
+                    safeName = self._sanitizeScriptFileName(nodeName)
+                    fileName = os.path.join(saveDir, f"{safeName}.py")
                     storageNode.SetFileName(fileName)
                     success = storageNode.WriteData(selectedNode)
                     if success:
@@ -552,6 +706,144 @@ class ScriptEditorWidget(ScriptedLoadableModuleWidget):
             if path not in sys.path:
                 sys.path.append(path)
         os.environ['PYTHONPATH'] = os.pathsep.join(slicer_paths)
+
+
+class DragDropEventFilter(qt.QObject):
+    """Event filter to handle drag and drop events on the Monaco editor"""
+    
+    def __init__(self, scriptEditorWidget):
+        super().__init__()
+        self.scriptEditorWidget = scriptEditorWidget
+    
+    def eventFilter(self, obj, event):
+        """Filter drag and drop events"""
+        if event.type() == qt.QEvent.DragEnter:
+            # Check if it's a Python file
+            if event.mimeData().hasUrls():
+                for url in event.mimeData().urls():
+                    if url.isLocalFile() and url.toLocalFile().lower().endswith('.py'):
+                        print("Python file drag detected - will be handled by Slicer")
+                        event.ignore()  # Ignore to let parent handle it
+                        return True
+            event.ignore()
+            return True
+        
+        elif event.type() == qt.QEvent.DragMove:
+            event.ignore()
+            return True
+            
+        elif event.type() == qt.QEvent.Drop:
+            # Handle Python file drops
+            if event.mimeData().hasUrls():
+                pythonFiles = []
+                for url in event.mimeData().urls():
+                    if url.isLocalFile():
+                        filePath = url.toLocalFile()
+                        if filePath.lower().endswith('.py'):
+                            pythonFiles.append(filePath)
+                
+                if pythonFiles:
+                    print(f"Loading {len(pythonFiles)} Python file(s) through Slicer's file system...")
+                    self.loadPythonFiles(pythonFiles)
+                    event.accept()
+                    return True
+            
+            event.ignore()
+            return True
+        
+        return False
+    
+    def loadPythonFiles(self, filePaths):
+        """Load Python files through Slicer's proper mechanism"""
+        for filePath in filePaths:
+            try:
+                # Use Slicer's file loading system
+                success = slicer.util.loadText(filePath)
+                if success:
+                    print(f"Successfully loaded: {filePath}")
+                    # Find and select the loaded node
+                    loadedNodes = slicer.mrmlScene.GetNodesByClass("vtkMRMLTextNode")
+                    for i in range(loadedNodes.GetNumberOfItems()):
+                        node = loadedNodes.GetItemAsObject(i)
+                        if node.GetAttribute("mimetype") == "text/x-python":
+                            storageNode = node.GetStorageNode()
+                            if storageNode and storageNode.GetFileName() == filePath:
+                                self.scriptEditorWidget.nodeComboBox.setCurrentNode(node)
+                                print(f"Selected loaded script: {node.GetName()}")
+                                break
+                else:
+                    print(f"Failed to load: {filePath}")
+            except Exception as e:
+                print(f"Error loading {filePath}: {str(e)}")
+
+
+class DragDropEventFilter(qt.QObject):
+    """Event filter to handle drag and drop events on the Monaco editor"""
+    
+    def __init__(self, scriptEditorWidget):
+        super().__init__()
+        self.scriptEditorWidget = scriptEditorWidget
+    
+    def eventFilter(self, obj, event):
+        """Filter drag and drop events"""
+        if event.type() == qt.QEvent.DragEnter:
+            # Check if it's a Python file
+            if event.mimeData().hasUrls():
+                for url in event.mimeData().urls():
+                    if url.isLocalFile() and url.toLocalFile().lower().endswith('.py'):
+                        print("Python file drag detected - will be handled by Slicer")
+                        event.ignore()  # Ignore to let parent handle it
+                        return True
+            event.ignore()
+            return True
+        
+        elif event.type() == qt.QEvent.DragMove:
+            event.ignore()
+            return True
+            
+        elif event.type() == qt.QEvent.Drop:
+            # Handle Python file drops
+            if event.mimeData().hasUrls():
+                pythonFiles = []
+                for url in event.mimeData().urls():
+                    if url.isLocalFile():
+                        filePath = url.toLocalFile()
+                        if filePath.lower().endswith('.py'):
+                            pythonFiles.append(filePath)
+                
+                if pythonFiles:
+                    print(f"Loading {len(pythonFiles)} Python file(s) through Slicer's file system...")
+                    self.loadPythonFiles(pythonFiles)
+                    event.accept()
+                    return True
+            
+            event.ignore()
+            return True
+        
+        return False
+    
+    def loadPythonFiles(self, filePaths):
+        """Load Python files through Slicer's proper mechanism"""
+        for filePath in filePaths:
+            try:
+                # Use Slicer's file loading system
+                success = slicer.util.loadText(filePath)
+                if success:
+                    print(f"Successfully loaded: {filePath}")
+                    # Find and select the loaded node
+                    loadedNodes = slicer.mrmlScene.GetNodesByClass("vtkMRMLTextNode")
+                    for i in range(loadedNodes.GetNumberOfItems()):
+                        node = loadedNodes.GetItemAsObject(i)
+                        if node.GetAttribute("mimetype") == "text/x-python":
+                            storageNode = node.GetStorageNode()
+                            if storageNode and storageNode.GetFileName() == filePath:
+                                self.scriptEditorWidget.nodeComboBox.setCurrentNode(node)
+                                print(f"Selected loaded script: {node.GetName()}")
+                                break
+                else:
+                    print(f"Failed to load: {filePath}")
+            except Exception as e:
+                print(f"Error loading {filePath}: {str(e)}")
 
 
 class ScriptEditorLogic(ScriptedLoadableModuleLogic):
